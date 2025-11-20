@@ -1,9 +1,6 @@
 from django.db import models
 
 
-# =======================
-#  MODELO USUARIO
-# =======================
 class AuthUsuario(models.Model):
     id_usuario = models.AutoField(primary_key=True)
     nombre = models.CharField(max_length=100)
@@ -15,9 +12,7 @@ class AuthUsuario(models.Model):
         return self.nombre
 
 
-# =======================
-#  MODELO CATEGORIA
-# =======================
+
 class Categoria(models.Model):
     id_categoria = models.AutoField(primary_key=True)
     nombre_categoria = models.CharField(max_length=100)
@@ -34,9 +29,7 @@ class Categoria(models.Model):
         return self.nombre_categoria
 
 
-# =======================
-#  MODELO TIPO_CAMBIO
-# =======================
+
 class TipoCambio(models.Model):
     id_moneda = models.AutoField(primary_key=True)
     nombre_moneda = models.CharField(max_length=50)
@@ -47,9 +40,6 @@ class TipoCambio(models.Model):
         return self.nombre_moneda
 
 
-# =======================
-#  MODELO GASTOS
-# =======================
 class Gasto(models.Model):
     id_gasto = models.AutoField(primary_key=True)
     id_usuario = models.ForeignKey(AuthUsuario, on_delete=models.CASCADE, related_name="gastos")
@@ -62,10 +52,6 @@ class Gasto(models.Model):
     def __str__(self):
         return f"{self.descripcion or 'Gasto'} - {self.monto}"
 
-
-# =======================
-#  MODELO INGRESOS
-# =======================
 class Ingreso(models.Model):
     id_ingreso = models.AutoField(primary_key=True)
     id_usuario = models.ForeignKey(AuthUsuario, on_delete=models.CASCADE, related_name="ingresos")
@@ -79,9 +65,7 @@ class Ingreso(models.Model):
         return f"{self.descripcion or 'Ingreso'} - {self.monto}"
 
 
-# =======================
-#  MODELO SUSCRIPCIONES
-# =======================
+
 class Suscripcion(models.Model):
     id_suscripcion = models.AutoField(primary_key=True)
     id_usuario = models.ForeignKey(AuthUsuario, on_delete=models.CASCADE, related_name="suscripciones")
