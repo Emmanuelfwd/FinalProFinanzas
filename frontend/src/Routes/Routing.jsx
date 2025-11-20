@@ -17,13 +17,14 @@ const Routing = () => {
 
             {/* RUTA PROTEGIDA */}
             <Route 
-                path="/dashboard" 
+                path="/dashboard/*"
                 element={
                     <ProtectedRoute>
                         <Dashboard />
                     </ProtectedRoute>
                 }
             />
+
         </Routes>
     );
 };
