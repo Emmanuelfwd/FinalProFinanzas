@@ -1,11 +1,10 @@
 import React from "react";
 
-const ChartsView = () => {
+export default function ChartsView() {
     return (
-        <div>
-            <h2>Gráficas</h2>
+        <div className="container">
+            <h2 className="mb-4">Gráficos</h2>
+            <p>Aquí irán las gráficas con Recharts.</p>
         </div>
     );
-};
-
-export default ChartsView;
+}

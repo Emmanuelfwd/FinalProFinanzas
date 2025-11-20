@@ -1,11 +1,10 @@
 import React from "react";
 
-const ExpensesView = () => {
+export default function ExpensesView() {
     return (
-        <div>
-            <h2>Vista de Gastos</h2>
+        <div className="container">
+            <h2 className="mb-4">Gastos</h2>
+            <p>Página de gestión de gastos lista.</p>
         </div>
     );
-};
-
-export default ExpensesView;
+}

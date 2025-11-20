@@ -1,11 +1,10 @@
 import React from "react";
 
-const IncomeView = () => {
+export default function IncomeView() {
     return (
-        <div>
-            <h2>Vista de Ingresos</h2>
+        <div className="container">
+            <h2 className="mb-4">Ingresos</h2>
+            <p>Página de gestión de ingresos lista.</p>
         </div>
     );
-};
-
-export default IncomeView;
+}

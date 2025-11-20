@@ -1,11 +1,10 @@
 import React from "react";
 
-const SubscriptionsView = () => {
+export default function SubscriptionsView() {
     return (
-        <div>
-            <h2>Suscripciones</h2>
+        <div className="container">
+            <h2 className="mb-4">Suscripciones</h2>
+            <p>Página de gestión de suscripciones lista.</p>
         </div>
     );
-};
-
-export default SubscriptionsView;
+}

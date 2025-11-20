@@ -1,11 +1,10 @@
 import React from "react";
 
-const HistoryView = () => {
+export default function HistoryView() {
     return (
-        <div>
-            <h2>Historial</h2>
+        <div className="container">
+            <h2 className="mb-4">Historial</h2>
+            <p>Lista de gastos / ingresos.</p>
         </div>
     );
-};
-
-export default HistoryView;
+}
