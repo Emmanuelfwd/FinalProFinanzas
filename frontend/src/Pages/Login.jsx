@@ -34,7 +34,7 @@ export default function Login() {
 
             // Guardar en localStorage exactamente estas claves:
             localStorage.setItem("token", token);
-            localStorage.setItem("userId", String(usuario.id_usuario));
+            localStorage.setItem("user_id", usuario.id_usuario);
             localStorage.setItem("currentUser", JSON.stringify(usuario));
 
             // Redirigir al dashboard

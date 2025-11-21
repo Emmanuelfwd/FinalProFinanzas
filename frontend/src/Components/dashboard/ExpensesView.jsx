@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { obtenerGastos, eliminarGasto } from "../../services/gastos";
+import AddGastoModal from "./AddGastoModal";
 
 export default function ExpensesView() {
     const [gastos, setGastos] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [showModal, setShowModal] = useState(false);
 
     const cargarGastos = async () => {
         try {
@@ -27,8 +29,19 @@ export default function ExpensesView() {
     if (loading) return <p>Cargando gastos...</p>;
 
     return (
-        <div className="container">
-            <h2 className="mb-4">Gastos</h2>
+        <div className="container mt-3">
+            <div className="d-flex justify-content-between align-items-center mb-4">
+                <h2>Gastos</h2>
+                <button className="btn btn-primary" onClick={() => setShowModal(true)}>
+                    + Agregar Gasto
+                </button>
+            </div>
+
+            <AddGastoModal
+                show={showModal}
+                onClose={() => setShowModal(false)}
+                onCreated={cargarGastos}
+            />
 
             {gastos.length === 0 && <p>No hay gastos registrados.</p>}
 
@@ -41,9 +54,7 @@ export default function ExpensesView() {
                         <div>
                             <strong>{g.descripcion}</strong>
                             <br />
-                            Monto: ₡{g.monto}
-                            <br />
-                            Fecha: {g.fecha}
+                            ₡{g.monto} — {g.fecha}
                         </div>
 
                         <button

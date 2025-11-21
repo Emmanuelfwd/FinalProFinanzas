@@ -1,19 +1,22 @@
-
 import API from "./api";
 
 export const obtenerGastos = async () => {
-  
-  return API.get("gastos/");
+    const userId = localStorage.getItem("userId");
+    return API.get(`/gastos/?usuario=${userId}`);
 };
 
 export const crearGasto = async (data) => {
-  return API.post("gastos/", data);
-};
+    const userId = localStorage.getItem("userId");
 
+    return API.post("/gastos/", {
+        ...data,
+        user_id: Number(userId)  
+    });
+};
 export const eliminarGasto = async (id) => {
-  return API.delete(`gastos/${id}/`);
+    return API.delete(`/gastos/${id}/`);
 };
 
 export const actualizarGasto = async (id, data) => {
-  return API.put(`gastos/${id}/`, data);
+    return API.put(`/gastos/${id}/`, data);
 };

@@ -15,9 +15,9 @@ from .authentication import JWTAuthentication
 from .permissions import IsAuthenticatedAuthUsuario
 
 
-# ============================
+
 #       LOGIN
-# ============================
+
 class LoginView(APIView):
     permission_classes = [AllowAny]
 
@@ -66,9 +66,9 @@ class LoginView(APIView):
         })
 
 
-# ============================
+
 #       USUARIO CRUD
-# ============================
+
 class AuthUsuarioView(ListCreateAPIView):
     queryset = AuthUsuario.objects.all()
     serializer_class = AuthUsuarioSerializer
@@ -79,9 +79,9 @@ class AuthUsuarioDetailView(RetrieveUpdateDestroyAPIView):
     serializer_class = AuthUsuarioSerializer
 
 
-# ============================
+
 #       CATEGORIA CRUD
-# ============================
+
 class CategoriaView(ListCreateAPIView):
     queryset = Categoria.objects.all()
     serializer_class = CategoriaSerializer
@@ -92,9 +92,9 @@ class CategoriaDetailView(RetrieveUpdateDestroyAPIView):
     serializer_class = CategoriaSerializer
 
 
-# ============================
+
 #      TIPO CAMBIO CRUD
-# ============================
+
 class TipoCambioView(ListCreateAPIView):
     queryset = TipoCambio.objects.all()
     serializer_class = TipoCambioSerializer
@@ -105,19 +105,17 @@ class TipoCambioDetailView(RetrieveUpdateDestroyAPIView):
     serializer_class = TipoCambioSerializer
 
 
-# ============================
 #        GASTOS CRUD
-# ============================
+
 class GastoView(ListCreateAPIView):
-    authentication_classes = [JWTAuthentication]
-    permission_classes = [IsAuthenticatedAuthUsuario]
+    queryset = Gasto.objects.all()
     serializer_class = GastoSerializer
 
     def get_queryset(self):
-        return Gasto.objects.filter(id_usuario=self.request.user)
-
-    def perform_create(self, serializer):
-        serializer.save(id_usuario=self.request.user)
+        usuario = self.request.query_params.get("usuario")
+        if usuario:
+            return Gasto.objects.filter(id_usuario=usuario)
+        return Gasto.objects.all()
 
 
 class GastoDetailView(RetrieveUpdateDestroyAPIView):
@@ -129,9 +127,9 @@ class GastoDetailView(RetrieveUpdateDestroyAPIView):
         return Gasto.objects.filter(id_usuario=self.request.user)
 
 
-# ============================
+
 #        INGRESOS CRUD
-# ============================
+
 class IngresoView(ListCreateAPIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticatedAuthUsuario]
@@ -153,9 +151,9 @@ class IngresoDetailView(RetrieveUpdateDestroyAPIView):
         return Ingreso.objects.filter(id_usuario=self.request.user)
 
 
-# ============================
+
 #     SUSCRIPCIONES CRUD
-# ============================
+
 class SuscripcionView(ListCreateAPIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticatedAuthUsuario]
