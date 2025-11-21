@@ -18,6 +18,43 @@
     border-radius: 15px;
     animation: fadeIn 0.2s ease-in-out;
 }
+/* ==== LANDING PAGE ESTILO FINANZAS PRO ==== */
+
+.landing-wrapper {
+    min-height: 100vh;
+    background: #f5f7fa;
+}
+
+/* HEADER */
+.landing-header {
+    background: #ffffff;
+    border-bottom: 1px solid #e1e5ea;
+}
+
+/* HERO */
+.landing-hero h1 {
+    color: #0d6efd;
+}
+
+.landing-hero p {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+/* CARDS */
+.landing-card {
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid #e3e6ea;
+    transition: 0.25s ease;
+}
+
+.landing-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
+}
+
+
 
 @keyframes fadeIn {
     from { opacity: 0; transform: scale(0.9); }
