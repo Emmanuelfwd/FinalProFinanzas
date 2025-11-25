@@ -1,0 +1,71 @@
+/* ENVOLTORIO GENERAL */
+.login-wrapper {
+    width: 100%;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #f5f7fb;
+}
+
+/* TARJETA DE LOGIN */
+.login-card {
+    width: 380px;
+    padding: 2rem;
+    border-radius: 12px;
+    background: white;
+    box-shadow: 0 5px 18px rgba(0, 0, 0, 0.08);
+    display: flex;
+    flex-direction: column;
+}
+
+.login-card h2 {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    color: #1b1b1b;
+}
+
+/* CAMPOS */
+.login-card label {
+    font-size: 14px;
+    margin-bottom: 4px;
+    font-weight: 500;
+}
+
+.login-card input {
+    padding: 10px;
+    margin-bottom: 16px;
+    border: 1px solid #dce1e7;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+/* BOTÓN */
+.btn-primary {
+    background: #296bff;
+    color: white;
+    padding: 12px;
+    border-radius: 6px;
+    text-align: center;
+    border: none;
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 600;
+}
+
+.btn-primary:hover {
+    background: #1e54c7;
+}
+
+/* TEXTO INFERIOR */
+.small {
+    margin-top: 1rem;
+    text-align: center;
+    font-size: 13px;
+    color: #555;
+}
+
+.small a {
+    color: #296bff;
+    font-weight: 600;
+}

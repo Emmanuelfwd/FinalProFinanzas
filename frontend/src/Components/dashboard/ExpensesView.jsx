@@ -1,71 +1,87 @@
 import React, { useEffect, useState } from "react";
-import { obtenerGastos, eliminarGasto } from "../../services/gastos";
+import API from "../../services/api";
 import AddGastoModal from "./AddGastoModal";
+import "../../styles/expenses.css";
 
 export default function ExpensesView() {
     const [gastos, setGastos] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [showModal, setShowModal] = useState(false);
+    const [mostrarModalAgregar, setMostrarModalAgregar] = useState(false);
 
     const cargarGastos = async () => {
         try {
-            const res = await obtenerGastos();
-            setGastos(res.data);
+            const idUsuario = localStorage.getItem("userId");
+            const respuesta = await API.get(`gastos/?usuario=${idUsuario}`);
+            setGastos(respuesta.data);
         } catch (error) {
-            console.error("Error al cargar gastos:", error);
+            console.error("Error cargando gastos:", error);
         }
-        setLoading(false);
     };
 
-    const borrar = async (id) => {
-        await eliminarGasto(id);
-        cargarGastos();
+    const eliminarGasto = async (idGasto) => {
+        if (!confirm("¿Seguro que deseas eliminar este gasto?")) return;
+
+        try {
+            await API.delete(`gastos/${idGasto}/`);
+            cargarGastos();
+        } catch (error) {
+            console.error("Error eliminando gasto:", error);
+        }
     };
 
     useEffect(() => {
         cargarGastos();
     }, []);
 
-    if (loading) return <p>Cargando gastos...</p>;
-
     return (
-        <div className="container mt-3">
-            <div className="d-flex justify-content-between align-items-center mb-4">
+        <div className="expenses-wrapper">
+
+            <div className="title-bar">
                 <h2>Gastos</h2>
-                <button className="btn btn-primary" onClick={() => setShowModal(true)}>
-                    + Agregar Gasto
+
+                <button
+                    className="add-btn"
+                    onClick={() => setMostrarModalAgregar(true)}
+                >
+                    + Agregar gasto
                 </button>
             </div>
 
-            <AddGastoModal
-                show={showModal}
-                onClose={() => setShowModal(false)}
-                onCreated={cargarGastos}
-            />
+            <div className="expenses-list">
+                {gastos.map(gasto => (
+                    <div className="expense-card" key={gasto.id_gasto}>
+                        <h4>{gasto.descripcion || "Gasto sin descripción"}</h4>
 
-            {gastos.length === 0 && <p>No hay gastos registrados.</p>}
+                        <p><strong>Monto:</strong> {gasto.monto}</p>
+                        <p><strong>Fecha:</strong> {gasto.fecha}</p>
 
-            <ul className="list-group">
-                {gastos.map(g => (
-                    <li
-                        key={g.id_gasto}
-                        className="list-group-item d-flex justify-content-between align-items-center"
-                    >
-                        <div>
-                            <strong>{g.descripcion}</strong>
-                            <br />
-                            ₡{g.monto} — {g.fecha}
+                        <div className="expense-actions">
+
+                            <button
+                                className="edit-btn"
+                                onClick={() => alert("Pantalla de editar viene en el siguiente paso")}
+                            >
+                                Editar
+                            </button>
+
+                            <button
+                                className="delete-btn"
+                                onClick={() => eliminarGasto(gasto.id_gasto)}
+                            >
+                                Eliminar
+                            </button>
+
                         </div>
-
-                        <button
-                            className="btn btn-danger"
-                            onClick={() => borrar(g.id_gasto)}
-                        >
-                            Eliminar
-                        </button>
-                    </li>
+                    </div>
                 ))}
-            </ul>
+            </div>
+
+            {mostrarModalAgregar && (
+                <AddGastoModal
+                    show={mostrarModalAgregar}
+                    onClose={() => setMostrarModalAgregar(false)}
+                    onCreated={cargarGastos}
+                />
+            )}
         </div>
     );
 }

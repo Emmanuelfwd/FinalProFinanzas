@@ -1,121 +1,208 @@
-from django.shortcuts import render
-from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
-from rest_framework.views import APIView
-from rest_framework.response import Response
-from rest_framework.permissions import AllowAny
-from rest_framework import status
-from django.contrib.auth.hashers import check_password
+# backend/api/views.py
 import datetime
 import jwt
+
 from django.conf import settings
+from django.shortcuts import get_object_or_404
 
-from .models import *
-from .serializers import *
+from rest_framework import status
+from rest_framework.generics import ListCreateAPIView, RetrieveUpdateDestroyAPIView
+from rest_framework.permissions import BasePermission, AllowAny
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from django.contrib.auth.hashers import check_password
+
 from .authentication import JWTAuthentication
-from .permissions import IsAuthenticatedAuthUsuario
+from .models import (
+    AuthUsuario,
+    Categoria,
+    Gasto,
+    Ingreso,
+    Suscripcion,
+    TipoCambio,
+)
+from .serializers import (
+    AuthUsuarioSerializer,
+    CategoriaSerializer,
+    GastoSerializer,
+    IngresoSerializer,
+    SuscripcionSerializer,
+    TipoCambioSerializer,
+)
 
 
+# -------------------------
+#  PERMISO PERSONALIZADO
+# -------------------------
 
-#       LOGIN
+class IsAuthenticatedAuthUsuario(BasePermission):
+    def has_permission(self, request, view):
+        return bool(request.user and getattr(request.user, "is_authenticated", False))
+
+
+# -------------------------
+#  LOGIN
+# -------------------------
 
 class LoginView(APIView):
+    """
+    Endpoint de login manual con JWT.
+
+    Entrada JSON:
+        {
+            "correo": "test@test.com",
+            "password": "12345"
+        }
+
+    Respuesta exitosa:
+        {
+            "token": "<jwt>",
+            "usuario": {
+                "id_usuario": ...,
+                "nombre": "...",
+                "correo": "...",
+                "fecha_registro": "..."
+            }
+        }
+    """
+
     permission_classes = [AllowAny]
 
     def post(self, request):
-        identifier = request.data.get('correo') or request.data.get('username')
-        password = request.data.get('password')
+        correo = request.data.get("correo")
+        password = request.data.get("password")
 
-        if not identifier or not password:
-            return Response({'detail': 'correo y password requeridos'}, status=status.HTTP_400_BAD_REQUEST)
+        if not correo or not password:
+            return Response(
+                {"detail": "Correo y contraseña son requeridos."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
         try:
-            usuario = AuthUsuario.objects.get(correo=identifier)
+            usuario = AuthUsuario.objects.get(correo=correo)
         except AuthUsuario.DoesNotExist:
-            return Response({'detail': 'Credenciales inválidas'}, status=status.HTTP_401_UNAUTHORIZED)
+            return Response(
+                {"detail": "Credenciales inválidas."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
 
-        stored = usuario.contrasenha_hash or ''
+        contrasenha_guardada = usuario.contrasenha_hash or ""
 
-        valid = False
+        # 1) Intentar verificar como hash
+        valido = False
         try:
-            valid = check_password(password, stored)
+            valido = check_password(password, contrasenha_guardada)
         except Exception:
-            valid = False
+            valido = False
 
-        if not valid:
-            if stored == password:
-                valid = True
+        # 2) Si no es hash, comparar directo por si guardaste el texto plano
+        if not valido and contrasenha_guardada == password:
+            valido = True
 
-        if not valid:
-            return Response({'detail': 'Credenciales inválidas'}, status=status.HTTP_401_UNAUTHORIZED)
+        if not valido:
+            return Response(
+                {"detail": "Credenciales inválidas."},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
 
-        exp = datetime.datetime.utcnow() + datetime.timedelta(hours=2)
+        # Crear token JWT válido 2 horas
+        expiracion = datetime.datetime.utcnow() + datetime.timedelta(hours=2)
         payload = {
-            'user_id': usuario.id_usuario,
-            'exp': exp
+            "user_id": usuario.id_usuario,
+            "exp": expiracion,
         }
-        token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
 
-        return Response({
-            'token': token,
-            'usuario': {
-                'id_usuario': usuario.id_usuario,
-                'nombre': usuario.nombre,
-                'correo': usuario.correo,
-                'fecha_registro': usuario.fecha_registro
+        token = jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
+
+        return Response(
+            {
+                "token": token,
+                "usuario": {
+                    "id_usuario": usuario.id_usuario,
+                    "nombre": usuario.nombre,
+                    "correo": usuario.correo,
+                    "fecha_registro": usuario.fecha_registro,
+                },
             }
-        })
+        )
 
 
-
-#       USUARIO CRUD
+# -------------------------
+#  USUARIOS
+# -------------------------
 
 class AuthUsuarioView(ListCreateAPIView):
     queryset = AuthUsuario.objects.all()
     serializer_class = AuthUsuarioSerializer
+    permission_classes = [AllowAny]
 
 
 class AuthUsuarioDetailView(RetrieveUpdateDestroyAPIView):
     queryset = AuthUsuario.objects.all()
     serializer_class = AuthUsuarioSerializer
+    permission_classes = [AllowAny]
 
 
-
-#       CATEGORIA CRUD
+# -------------------------
+#  CATEGORÍAS
+# -------------------------
 
 class CategoriaView(ListCreateAPIView):
-    queryset = Categoria.objects.all()
     serializer_class = CategoriaSerializer
+    permission_classes = [AllowAny]
+
+    def get_queryset(self):
+        """
+        Soporta filtro por tipo:
+            /api/categorias/?tipo=INGRESO
+            /api/categorias/?tipo=GASTO
+        """
+        tipo = self.request.query_params.get("tipo")
+        if tipo:
+            return Categoria.objects.filter(tipo=tipo)
+        return Categoria.objects.all()
 
 
 class CategoriaDetailView(RetrieveUpdateDestroyAPIView):
     queryset = Categoria.objects.all()
     serializer_class = CategoriaSerializer
+    permission_classes = [AllowAny]
 
 
-
-#      TIPO CAMBIO CRUD
+# -------------------------
+#  TIPO DE CAMBIO
+# -------------------------
 
 class TipoCambioView(ListCreateAPIView):
     queryset = TipoCambio.objects.all()
     serializer_class = TipoCambioSerializer
+    permission_classes = [AllowAny]
 
 
 class TipoCambioDetailView(RetrieveUpdateDestroyAPIView):
     queryset = TipoCambio.objects.all()
     serializer_class = TipoCambioSerializer
+    permission_classes = [AllowAny]
 
 
-#        GASTOS CRUD
+# -------------------------
+#  GASTOS
+# -------------------------
 
 class GastoView(ListCreateAPIView):
-    queryset = Gasto.objects.all()
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticatedAuthUsuario]
     serializer_class = GastoSerializer
 
     def get_queryset(self):
-        usuario = self.request.query_params.get("usuario")
-        if usuario:
-            return Gasto.objects.filter(id_usuario=usuario)
-        return Gasto.objects.all()
+        # Filtrar por usuario logueado
+        return Gasto.objects.filter(id_usuario=self.request.user.id_usuario)
+
+    def perform_create(self, serializer):
+        usuario = get_object_or_404(
+            AuthUsuario, id_usuario=self.request.user.id_usuario
+        )
+        serializer.save(id_usuario=usuario)
 
 
 class GastoDetailView(RetrieveUpdateDestroyAPIView):
@@ -124,11 +211,12 @@ class GastoDetailView(RetrieveUpdateDestroyAPIView):
     serializer_class = GastoSerializer
 
     def get_queryset(self):
-        return Gasto.objects.filter(id_usuario=self.request.user)
+        return Gasto.objects.filter(id_usuario=self.request.user.id_usuario)
 
 
-
-#        INGRESOS CRUD
+# -------------------------
+#  INGRESOS
+# -------------------------
 
 class IngresoView(ListCreateAPIView):
     authentication_classes = [JWTAuthentication]
@@ -136,10 +224,13 @@ class IngresoView(ListCreateAPIView):
     serializer_class = IngresoSerializer
 
     def get_queryset(self):
-        return Ingreso.objects.filter(id_usuario=self.request.user)
+        return Ingreso.objects.filter(id_usuario=self.request.user.id_usuario)
 
     def perform_create(self, serializer):
-        serializer.save(id_usuario=self.request.user)
+        usuario = get_object_or_404(
+            AuthUsuario, id_usuario=self.request.user.id_usuario
+        )
+        serializer.save(id_usuario=usuario)
 
 
 class IngresoDetailView(RetrieveUpdateDestroyAPIView):
@@ -148,11 +239,12 @@ class IngresoDetailView(RetrieveUpdateDestroyAPIView):
     serializer_class = IngresoSerializer
 
     def get_queryset(self):
-        return Ingreso.objects.filter(id_usuario=self.request.user)
+        return Ingreso.objects.filter(id_usuario=self.request.user.id_usuario)
 
 
-
-#     SUSCRIPCIONES CRUD
+# -------------------------
+#  SUSCRIPCIONES
+# -------------------------
 
 class SuscripcionView(ListCreateAPIView):
     authentication_classes = [JWTAuthentication]
@@ -160,10 +252,13 @@ class SuscripcionView(ListCreateAPIView):
     serializer_class = SuscripcionSerializer
 
     def get_queryset(self):
-        return Suscripcion.objects.filter(id_usuario=self.request.user)
+        return Suscripcion.objects.filter(id_usuario=self.request.user.id_usuario)
 
     def perform_create(self, serializer):
-        serializer.save(id_usuario=self.request.user)
+        usuario = get_object_or_404(
+            AuthUsuario, id_usuario=self.request.user.id_usuario
+        )
+        serializer.save(id_usuario=usuario)
 
 
 class SuscripcionDetailView(RetrieveUpdateDestroyAPIView):
@@ -172,4 +267,4 @@ class SuscripcionDetailView(RetrieveUpdateDestroyAPIView):
     serializer_class = SuscripcionSerializer
 
     def get_queryset(self):
-        return Suscripcion.objects.filter(id_usuario=self.request.user)
+        return Suscripcion.objects.filter(id_usuario=self.request.user.id_usuario)

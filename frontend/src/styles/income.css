@@ -1,0 +1,363 @@
+/* src/styles/income.css */
+
+/* ------------ CONTENEDOR GENERAL ------------ */
+
+.income-container {
+  padding: 32px 40px;
+  background: #f7f9fc;
+  min-height: 100vh;
+  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+}
+
+/* ------------ CABECERA ------------ */
+
+.income-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.income-title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #111827;
+  margin-bottom: 4px;
+}
+
+.income-subtitle {
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* Botón agregar */
+.income-add-button {
+  padding: 10px 18px;
+  border-radius: 999px;
+  border: none;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.25);
+  transition: background 0.15s ease, transform 0.12s ease,
+    box-shadow 0.15s ease;
+}
+
+.income-add-button:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.35);
+}
+
+.income-add-button:active {
+  transform: translateY(0);
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.25);
+}
+
+/* ------------ ESTADOS ------------ */
+
+.income-error {
+  padding: 10px 14px;
+  border-radius: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.income-loading,
+.income-empty {
+  margin-top: 32px;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* ------------ GRID / TARJETAS ------------ */
+
+.income-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin-top: 8px;
+}
+
+.income-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 16px 18px;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.06);
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.income-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.income-description-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.income-date {
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.income-amount-row {
+  margin-top: 4px;
+}
+
+.income-amount {
+  font-size: 18px;
+  font-weight: 600;
+  color: #16a34a;
+}
+
+/* Footer de tarjeta (botones) */
+.income-card-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* Botones pequeños de tarjeta */
+.income-edit-button,
+.income-delete-button {
+  font-size: 12px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.income-edit-button {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-color: #bfdbfe;
+}
+
+.income-edit-button:hover {
+  background: #dbeafe;
+}
+
+.income-delete-button {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: #fecaca;
+}
+
+.income-delete-button:hover {
+  background: #fee2e2;
+}
+
+/* ------------ MODAL OVERLAY ------------ */
+
+.income-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.32);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+}
+
+/* ------------ MODAL CAJA ------------ */
+
+.income-modal {
+  width: 100%;
+  max-width: 520px;
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.28);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Header del modal */
+.income-modal-header {
+  padding: 16px 20px;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.income-modal-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.income-modal-close {
+  border: none;
+  background: transparent;
+  font-size: 18px;
+  cursor: pointer;
+  color: #9ca3af;
+  line-height: 1;
+  padding: 4px;
+  border-radius: 999px;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.income-modal-close:hover {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+/* Cuerpo del modal */
+.income-modal-body {
+  padding: 18px 20px 8px 20px;
+}
+
+/* Formulario general */
+.income-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.income-form-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+/* Dos columnas para monto y fecha */
+.income-form-row-inline {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.income-form-label {
+  font-size: 13px;
+  color: #374151;
+  font-weight: 500;
+}
+
+.income-required {
+  color: #dc2626;
+  margin-left: 2px;
+}
+
+.income-form-input,
+.income-form-select,
+.income-form-textarea {
+  width: 100%;
+  border-radius: 10px;
+  border: 1px solid #d1d5db;
+  padding: 8px 10px;
+  font-size: 14px;
+  color: #111827;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  background: #f9fafb;
+}
+
+.income-form-input:focus,
+.income-form-select:focus,
+.income-form-textarea:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.25);
+  background: #ffffff;
+}
+
+.income-form-textarea {
+  resize: vertical;
+}
+
+/* Error dentro del modal */
+.income-form-error {
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  font-size: 13px;
+  color: #b91c1c;
+}
+
+/* Footer del modal (botones) */
+.income-modal-footer {
+  padding: 14px 20px 16px 20px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Botón secundario */
+.income-secondary-button {
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #4b5563;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.income-secondary-button:hover {
+  background: #f3f4f6;
+}
+
+/* Botón primario */
+.income-primary-button {
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: none;
+  background: #2563eb;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.12s ease,
+    box-shadow 0.15s ease;
+  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.25);
+}
+
+.income-primary-button:hover {
+  background: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 12px 26px rgba(37, 99, 235, 0.32);
+}
+
+.income-primary-button:disabled,
+.income-secondary-button:disabled {
+  opacity: 0.65;
+  cursor: default;
+  box-shadow: none;
+  transform: none;
+}
+
+/* ------------ RESPONSIVE ------------ */
+
+@media (max-width: 768px) {
+  .income-container {
+    padding: 20px 16px;
+  }
+
+  .income-modal {
+    margin: 0 12px;
+  }
+}

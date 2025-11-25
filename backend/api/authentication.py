@@ -1,46 +1,55 @@
 
 import jwt
 from django.conf import settings
-from rest_framework import authentication, exceptions
+from rest_framework.authentication import BaseAuthentication
+from rest_framework import exceptions
+
 from .models import AuthUsuario
 
-class JWTAuthentication(authentication.BaseAuthentication):
+
+class JWTAuthentication(BaseAuthentication):
     """
-    Autenticación basada en JWT usando la tabla AuthUsuario.
-    Coloca la instancia AuthUsuario en request.user.
+    Autenticación sencilla con JWT usando AuthUsuario.
+    Espera el header:
+        Authorization: Bearer <token>
     """
 
     def authenticate(self, request):
-        auth_header = authentication.get_authorization_header(request).split()
+        authorization_header = request.headers.get("Authorization")
 
-        if not auth_header:
+        if not authorization_header:
+            # Sin header => vista funcionará como anónima si no exige auth
             return None
 
-        if auth_header[0].lower() != b'bearer':
-            return None
+        parts = authorization_header.split()
 
-        if len(auth_header) == 1:
-            raise exceptions.AuthenticationFailed('Token no proporcionado.')
-        if len(auth_header) > 2:
-            raise exceptions.AuthenticationFailed('Token con formato inválido.')
+        if len(parts) != 2 or parts[0].lower() != "bearer":
+            raise exceptions.AuthenticationFailed("Formato de autorización inválido.")
 
-        token = auth_header[1]
+        token = parts[1]
 
         try:
-            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+            payload = jwt.decode(
+                token,
+                settings.SECRET_KEY,
+                algorithms=["HS256"]
+            )
         except jwt.ExpiredSignatureError:
-            raise exceptions.AuthenticationFailed('Token expirado.')
+            raise exceptions.AuthenticationFailed("El token ha expirado.")
         except jwt.InvalidTokenError:
-            raise exceptions.AuthenticationFailed('Token inválido.')
+            raise exceptions.AuthenticationFailed("Token inválido.")
 
-        user_id = payload.get('user_id')
+        user_id = payload.get("user_id")
 
-        if user_id is None:
-            raise exceptions.AuthenticationFailed('Token sin user_id.')
+        if not user_id:
+            raise exceptions.AuthenticationFailed("Token sin user_id.")
 
         try:
-            user = AuthUsuario.objects.get(id_usuario=user_id)
+            usuario = AuthUsuario.objects.get(id_usuario=user_id)
         except AuthUsuario.DoesNotExist:
-            raise exceptions.AuthenticationFailed('Usuario no existe.')
+            raise exceptions.AuthenticationFailed("Usuario no encontrado.")
 
-        return (user, token)
+        # Para que IsAuthenticatedAuthUsuario funcione
+        usuario.is_authenticated = True
+
+        return (usuario, None)

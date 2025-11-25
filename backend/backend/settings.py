@@ -42,18 +42,18 @@ INSTALLED_APPS = [
     # CORS
     'corsheaders',
 
-    # TU APP
+    # APP
     'api',
 ]
 
 MIDDLEWARE = [
-    # CORS debe ir arriba
+    
     'corsheaders.middleware.CorsMiddleware',
 
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
 
-    # CommonMiddleware debe ir después de CORS
+    # CommonMiddleware 
     'django.middleware.common.CommonMiddleware',
 
     'django.middleware.csrf.CsrfViewMiddleware',

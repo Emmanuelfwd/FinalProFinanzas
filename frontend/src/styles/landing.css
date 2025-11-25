@@ -1,104 +1,217 @@
-/* Full width layout */
+/* ===== Reset muy suave (solo para la landing) ===== */
+.landing-wrapper,
+.landing-wrapper * {
+  box-sizing: border-box;
+}
+
+/* ===== Layout general ===== */
+
 .landing-wrapper {
-    width: 100%;
-    min-height: 100vh;
-    background: #f4f7ff;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
+  min-height: 100vh;
+  width: 100%;
+  background: radial-gradient(circle at top, #f4f7ff 0, #f7f9fc 40%, #f8fafc 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  color: #0f172a;
+  padding: 24px 16px 40px;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
-/* NAV */
+/* Contenedor central para alinear todo como en Figma */
+.landing-container {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+/* ===== NAVBAR ===== */
+
 .landing-nav {
-    width: 100%;
-    padding: 18px 40px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: transparent;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 4px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 }
 
-.logo {
-    font-size: 22px;
-    font-weight: 700;
+.landing-logo {
+  font-size: 1.05rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #0f172a;
 }
 
+.landing-logo span {
+  display: inline-block;
+  padding: 4px 7px;
+  border-radius: 8px;
+  border: 1px solid #2563eb;
+  font-size: 0.8rem;
+  color: #2563eb;
+}
+
+/* solo tienes el botón de login, así que lo dejamos simple */
 .login-btn {
-    padding: 8px 18px;
-    background: white;
-    border-radius: 8px;
-    border: 1px solid #d8d8d8;
-    text-decoration: none;
-    color: black;
-    transition: 0.2s;
+  padding: 8px 18px;
+  border-radius: 999px;
+  border: 1px solid #111827;
+  font-size: 0.85rem;
+  text-decoration: none;
+  color: #111827;
+  background: #ffffff;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .login-btn:hover {
-    background: #f0f0f0;
+  background: #111827;
+  color: #ffffff;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.18);
 }
 
-/* HERO SECTION */
+/* ===== HERO ===== */
+
 .hero {
-    text-align: center;
-    margin-top: 80px;
-    width: 100%;
+  width: 100%;
+  max-width: 720px;
+  margin: 80px auto 56px;
+  text-align: center;
 }
 
 .hero h1 {
-    font-size: 38px;
-    font-weight: 800;
-    color: #1155ff;
+  font-size: 2.6rem;
+  line-height: 1.1;
+  letter-spacing: 0.02em;
+  margin-bottom: 18px;
 }
 
-.subtitle {
-    margin-top: 10px;
-    color: #555;
-    font-size: 18px;
+.hero .subtitle {
+  font-size: 0.98rem;
+  line-height: 1.6;
+  color: #6b7280;
+  max-width: 620px;
+  margin: 0 auto 26px;
 }
 
 .primary-btn {
-    margin-top: 20px;
-    display: inline-block;
-    padding: 12px 24px;
-    background: #2d73ff;
-    color: white;
-    text-decoration: none;
-    border-radius: 10px;
-    font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 22px;
+  border-radius: 999px;
+  border: none;
+  text-decoration: none;
+  background: #2563eb;
+  color: #ffffff;
+  font-weight: 500;
+  font-size: 0.95rem;
+  box-shadow: 0 12px 25px rgba(37, 99, 235, 0.4);
+  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
 }
 
 .primary-btn:hover {
-    background: #235ed1;
+  background: #1d4ed8;
+  transform: translateY(-1px);
+  box-shadow: 0 16px 30px rgba(37, 99, 235, 0.45);
 }
 
-/* FEATURES */
+/* ===== TÍTULO DE SECCIÓN ===== */
+
+.section-title {
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto 24px;
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #4b5563;
+}
+
+/* ===== FEATURES ===== */
+
 .features {
-    margin-top: 70px;
-    width: 90%;
-    display: flex;
-    justify-content: center;
-    gap: 30px;
-    flex-wrap: wrap;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto 64px;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
 }
 
 .feature-card {
-    background: white;
-    padding: 25px;
-    width: 290px;
-    border-radius: 12px;
-    text-align: center;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  background: #ffffff;
+  border-radius: 18px;
+  padding: 22px 24px;
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-/* FOOTER */
+.feature-card h3 {
+  font-size: 0.98rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.feature-card p {
+  font-size: 0.9rem;
+  line-height: 1.6;
+  color: #6b7280;
+}
+
+/* ===== FOOTER ===== */
+
 .landing-footer {
-    margin-top: 60px;
-    padding-bottom: 40px;
-    color: #777;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  border-top: 1px solid rgba(148, 163, 184, 0.35);
+  padding-top: 18px;
+  text-align: left;
+  font-size: 0.82rem;
+  color: #9ca3af;
 }
 
-.landing-container {
-  max-width: 1100px;
-  margin: 0 auto;
-  padding: 40px 20px;
+/* ===== RESPONSIVE ===== */
+
+@media (max-width: 1024px) {
+  .hero {
+    margin-top: 64px;
+  }
+
+  .features {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 768px) {
+  .landing-wrapper {
+    padding: 16px 14px 32px;
+  }
+
+  .landing-nav {
+    padding-top: 0;
+  }
+
+  .hero {
+    margin-top: 44px;
+  }
+
+  .hero h1 {
+    font-size: 2.1rem;
+  }
+
+  .features {
+    grid-template-columns: 1fr;
+  }
+
+  .landing-footer {
+    text-align: center;
+  }
 }
