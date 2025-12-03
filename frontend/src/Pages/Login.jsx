@@ -1,105 +1,90 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import API from "../services/api";
-import "../styles/login.css";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
-export default function Login() {
+function Login() {
     const navigate = useNavigate();
 
-    const [form, setForm] = useState({
-        correo: "",
-        password: ""
-    });
-
-    const [loading, setLoading] = useState(false);
+    const [correo, setCorreo] = useState("");
+    const [password, setPassword] = useState("");
     const [error, setError] = useState("");
-
-    const handleChange = (e) => {
-        setForm({ ...form, [e.target.name]: e.target.value });
-    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError("");
 
-        if (!form.correo || !form.password) {
-            setError("Debe completar todos los campos.");
-            return;
-        }
-
-        setLoading(true);
-
         try {
-            const res = await API.post("login/", {
-                correo: form.correo,
-                password: form.password
-            });
+            const response = await axios.post(
+                "http://127.0.0.1:8000/api/login/",
+                {
+                    correo: correo,
+                    password: password
+                },
+                {
+                    headers: {
+                        "Content-Type": "application/json"
+                    }
+                }
+            );
 
-            const { token, usuario } = res.data;
+            // Backend REAL devuelve:
+            // token, refresh, usuario
+            const { token, refresh, usuario } = response.data;
 
-            if (!token || !usuario) {
-                setError("Respuesta inválida del servidor.");
-                setLoading(false);
-                return;
-            }
-
-            // Guardar sesión
             localStorage.setItem("token", token);
-            localStorage.setItem("userId", usuario.id_usuario);
+            localStorage.setItem("refresh", refresh);
             localStorage.setItem("currentUser", JSON.stringify(usuario));
+            localStorage.setItem("userId", usuario.id_usuario);
 
             navigate("/dashboard");
 
         } catch (err) {
+            console.error("❌ Error login:", err);
+
             if (err.response?.status === 401) {
-                setError("Correo o contraseña incorrectos.");
+                setError("Credenciales inválidas");
             } else {
-                setError("Error de conexión con el servidor.");
+                setError("Error al iniciar sesión.");
             }
         }
-
-        setLoading(false);
     };
 
     return (
-        <div className="auth-wrapper">
-            <div className="auth-card">
+        <div className="container mt-5">
+            <h2>Iniciar Sesión</h2>
 
-                <h2 className="auth-title">Iniciar sesión</h2>
+            {error && <div className="alert alert-danger">{error}</div>}
 
-                {error && <div className="auth-error">{error}</div>}
+            <form onSubmit={handleSubmit}>
 
-                <form onSubmit={handleSubmit}>
-
-                    <label>Correo electrónico</label>
+                <div className="mb-3">
+                    <label>Correo:</label>
                     <input
                         type="email"
-                        name="correo"
-                        value={form.correo}
-                        onChange={handleChange}
-                        className="auth-input"
-                        placeholder="tu@correo.com"
+                        className="form-control"
+                        value={correo}
+                        onChange={(e) => setCorreo(e.target.value)}
+                        required
                     />
+                </div>
 
-                    <label>Contraseña</label>
+                <div className="mb-3">
+                    <label>Contraseña:</label>
                     <input
                         type="password"
-                        name="password"
-                        value={form.password}
-                        onChange={handleChange}
-                        className="auth-input"
-                        placeholder="••••••••"
+                        className="form-control"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
                     />
+                </div>
 
-                    <button className="auth-button" disabled={loading}>
-                        {loading ? "Ingresando..." : "Entrar"}
-                    </button>
-                </form>
-
-                <p className="auth-switch">
-                    ¿No tienes cuenta? <Link to="/register">Crear cuenta</Link>
-                </p>
-            </div>
+                <button type="submit" className="btn btn-primary w-100">
+                    Entrar
+                </button>
+            </form>
         </div>
     );
 }
+
+export default Login;

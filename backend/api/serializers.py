@@ -1,3 +1,4 @@
+# backend/api/serializers.py
 from rest_framework import serializers
 from .models import AuthUsuario, Categoria, TipoCambio, Gasto, Ingreso, Suscripcion
 
@@ -22,25 +23,20 @@ class TipoCambioSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-#GASTOS
+# GASTOS
 class GastoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Gasto
         fields = '__all__'
+        read_only_fields = ['id_usuario']   # 👈 IMPORTANTE
 
 
-    def create(self, validated_data):
-        return Gasto.objects.create(**validated_data)
-
-
-#  INGRESOS
+# INGRESOS
 class IngresoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ingreso
         fields = '__all__'
-
-    def create(self, validated_data):
-        return Ingreso.objects.create(**validated_data)
+        read_only_fields = ['id_usuario']   # 👈 IMPORTANTE
 
 
 # SUSCRIPCIONES 
@@ -48,6 +44,4 @@ class SuscripcionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Suscripcion
         fields = '__all__'
-
-    def create(self, validated_data):
-        return Suscripcion.objects.create(**validated_data)
+        read_only_fields = ['id_usuario']   # 👈 IMPORTANTE

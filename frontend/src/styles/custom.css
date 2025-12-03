@@ -54,6 +54,26 @@
     box-shadow: 0 8px 18px rgba(0, 0, 0, 0.08);
 }
 
+.categoria-select {
+  background-color: #ffffff;
+  border-radius: 12px;
+  border: 2px solid #e5e7eb;
+  padding: 12px;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all .2s ease;
+}
+
+.categoria-select:focus {
+  border-color: #6c5ce7 !important;
+  box-shadow: 0 0 4px rgba(108, 92, 231, 0.4);
+}
+
+.categoria-select option {
+  background-color: white;
+  font-weight: 500;
+}
+
 
 
 @keyframes fadeIn {
