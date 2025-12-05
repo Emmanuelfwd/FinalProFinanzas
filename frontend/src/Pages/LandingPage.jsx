@@ -8,7 +8,7 @@ export default function LandingPage() {
             {/* NAV */}
             <nav className="landing-nav">
                 <div className="landing-logo">
-                    {/* Si quieres que diga EasyWallet y no FinanzasPro cámbialo aquí */}
+                    
                     <span>EW</span>
                     EasyWallet
                 </div>

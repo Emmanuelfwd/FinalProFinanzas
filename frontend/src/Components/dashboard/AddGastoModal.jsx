@@ -35,7 +35,7 @@ export default function AddGastoModal({ show, onClose, onCreated }) {
 
         const payload = {
             ...form,
-            id_usuario: Number(localStorage.getItem("userId"))  // ✔ CLAVE CORRECTA
+            id_usuario: Number(localStorage.getItem("userId")) 
         };
 
         try {

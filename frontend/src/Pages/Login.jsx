@@ -27,8 +27,6 @@ function Login() {
                 }
             );
 
-            // Backend REAL devuelve:
-            // token, refresh, usuario
             const { token, refresh, usuario } = response.data;
 
             localStorage.setItem("token", token);
@@ -39,7 +37,7 @@ function Login() {
             navigate("/dashboard");
 
         } catch (err) {
-            console.error("❌ Error login:", err);
+            console.error(" Error login:", err);
 
             if (err.response?.status === 401) {
                 setError("Credenciales inválidas");

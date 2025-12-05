@@ -18,7 +18,6 @@ class JWTAuthentication(BaseAuthentication):
         authorization_header = request.headers.get("Authorization")
 
         if not authorization_header:
-            # Sin header => vista funcionará como anónima si no exige auth
             return None
 
         parts = authorization_header.split()

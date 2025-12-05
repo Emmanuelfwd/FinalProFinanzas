@@ -73,21 +73,21 @@ export default function AddIngresoModal({ show, onClose, onCreated }) {
                 descripcion: descripcion
             };
 
-            console.log("📤 Enviando ingreso:", datosAEnviar);
+            console.log(" Enviando ingreso:", datosAEnviar);
 
             const respuesta = await crearIngreso(datosAEnviar);
-            console.log("📥 Respuesta backend:", respuesta.data);
+            console.log(" Respuesta backend:", respuesta.data);
 
             if (onCreated) await onCreated();
 
             manejarCerrar();
 
         } catch (error) {
-            console.error("❌ Error creando ingreso:", error);
+            console.error(" Error creando ingreso:", error);
 
-            // LOG MEGA DETALLADO
-            console.log("🎯 ERROR EXACTO DEL BACKEND:", error.response?.data);
-            console.log("🔥 RESPUESTA BACKEND COMPLETA:", JSON.stringify(error.response?.data));
+           
+            console.log(" ERROR  DEL BACKEND:", error.response?.data);
+            console.log(" RESPUESTA BACKEND COMPLETA:", JSON.stringify(error.response?.data));
 
             let mensaje =
                 error.response?.data?.detail ||

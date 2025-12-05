@@ -72,17 +72,17 @@ export default function EditIngresoModal({ ingreso, show, onClose, onUpdated }) 
                 descripcion: descripcion
             };
 
-            console.log("🔄 Editar ingreso →", datosActualizados);
+            console.log(" Editar ingreso →", datosActualizados);
 
             const respuesta = await actualizarIngreso(ingreso.id_ingreso, datosActualizados);
-            console.log("📥 Respuesta backend:", respuesta.data);
+            console.log(" Respuesta backend:", respuesta.data);
 
             if (onUpdated) await onUpdated();
 
             manejarCerrar();
 
         } catch (error) {
-            console.error("❌ Error editando ingreso:", error);
+            console.error(" Error editando ingreso:", error);
 
             let mensaje =
                 error.response?.data?.detail ||
