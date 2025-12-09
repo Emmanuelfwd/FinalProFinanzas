@@ -91,6 +91,70 @@ class LoginView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+        # Buscar usuario por correo
+        try:
+            usuario = AuthUsuario.objects.get(correo=correo)
+        except AuthUsuario.DoesNotExist:
+            return Response({"detail": "Credenciales inválidas."},
+                            status=status.HTTP_401_UNAUTHORIZED)
+
+        # Obtener contraseña guardada
+        contrasenha_guardada = usuario.contrasenha_hash
+
+        # Normalizar
+        if contrasenha_guardada is None:
+            contrasenha_guardada = ""
+
+        # Validación:
+        # 1. Si está hasheada -> check_password
+        # 2. Si no -> comparar texto plano
+        password_valida = False
+        
+        try:
+            if check_password(password, contrasenha_guardada):
+                password_valida = True
+        except Exception:
+            pass
+
+        if not password_valida and contrasenha_guardada == password:
+            password_valida = True
+
+        if not password_valida:
+            return Response({"detail": "Credenciales inválidas."},
+                            status=status.HTTP_401_UNAUTHORIZED)
+
+        # GENERAR JWT MANUALMENTE (independiente de Django User)
+        payload = {
+            "id_usuario": usuario.id_usuario,
+            "correo": usuario.correo,
+            "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=12),
+            "iat": datetime.datetime.utcnow(),
+        }
+
+        token = jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
+
+        return Response({
+            "token": token,
+            "usuario": {
+                "id_usuario": usuario.id_usuario,
+                "nombre": usuario.nombre,
+                "correo": usuario.correo,
+                "fecha_registro": usuario.fecha_registro
+            }
+        })
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        correo = request.data.get("correo")
+        password = request.data.get("password")
+
+        if not correo or not password:
+            return Response(
+                {"detail": "Correo y contraseña requeridos."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
         try:
             usuario = AuthUsuario.objects.get(correo=correo)
         except AuthUsuario.DoesNotExist:

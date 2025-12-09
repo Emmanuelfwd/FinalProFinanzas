@@ -1,4 +1,3 @@
-# api/urls.py
 from django.urls import path
 from .views import (
     CustomTokenView,
@@ -15,34 +14,41 @@ from .views import (
     SuscripcionDetailView,
     TipoCambioView,
     TipoCambioDetailView,
-    UsuarioActualAPIView
+    UsuarioActualAPIView,
 )
 
 urlpatterns = [
-    # LOGIN USANDO SIMPLEJWT PERSONALIZADO
+    # --- Autenticación ---
+    # Token personalizado (SimpleJWT usando AuthUsuario)
     path("token/", CustomTokenView.as_view(), name="token_personalizado"),
 
-    # Si usas tu login propio (opcional)
-    path("login/", LoginView.as_view()),
+    # Login propio con correo + contraseña
+    path("login/", LoginView.as_view(), name="login"),
 
-    # USUARIO ACTUAL
-    path("usuarios/me/", UsuarioActualAPIView.as_view()),
+    # Usuario actual (a partir del JWT)
+    path("usuarios/me/", UsuarioActualAPIView.as_view(), name="usuario_actual"),
 
-    # CRUD
-    path("usuarios/", AuthUsuarioView.as_view()),
-    path("usuarios/<int:pk>/", AuthUsuarioDetailView.as_view()),
+    # --- Usuarios ---
+    path("usuarios/", AuthUsuarioView.as_view(), name="usuarios_lista"),
+    path("usuarios/<int:pk>/", AuthUsuarioDetailView.as_view(), name="usuarios_detalle"),
 
-    path("categorias/", CategoriaView.as_view()),
-    path("categorias/<int:pk>/", CategoriaDetailView.as_view()),
+    # --- Categorías ---
+    path("categorias/", CategoriaView.as_view(), name="categorias_lista"),
+    path("categorias/<int:pk>/", CategoriaDetailView.as_view(), name="categorias_detalle"),
 
-    path("ingresos/", IngresoView.as_view()),
-    path("ingresos/<int:pk>/", IngresoDetailView.as_view()),
+    # --- Ingresos ---
+    path("ingresos/", IngresoView.as_view(), name="ingresos_lista"),
+    path("ingresos/<int:pk>/", IngresoDetailView.as_view(), name="ingresos_detalle"),
 
-    path("gastos/", GastoView.as_view()),
-    path("gastos/<int:pk>/", GastoDetailView.as_view()),
+    # --- Gastos ---
+    path("gastos/", GastoView.as_view(), name="gastos_lista"),
+    path("gastos/<int:pk>/", GastoDetailView.as_view(), name="gastos_detalle"),
 
-    path("suscripciones/", SuscripcionView.as_view()),
-    path("suscripciones/<int:pk>/", SuscripcionDetailView.as_view()),
+    # --- Suscripciones ---
+    path("suscripciones/", SuscripcionView.as_view(), name="suscripciones_lista"),
+    path("suscripciones/<int:pk>/", SuscripcionDetailView.as_view(), name="suscripciones_detalle"),
 
-    path("tipocambio/", TipoCambioView.as_view()),
+    # --- Tipo de cambio ---
+    path("tipocambio/", TipoCambioView.as_view(), name="tipocambio_lista"),
+    path("tipocambio/<int:pk>/", TipoCambioDetailView.as_view(), name="tipocambio_detalle"),
 ]

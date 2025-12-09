@@ -1,24 +1,26 @@
 import React from "react";
-import { Link } from "react-router-dom";
 
 const NavbarDashboard = () => {
-    return (
-        <nav className="navbar navbar-dark bg-dark px-3">
-            <Link to="/dashboard" className="navbar-brand">
-                FinanzasPro Dashboard
-            </Link>
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("refresh");
+    localStorage.removeItem("currentUser");
+    localStorage.removeItem("userId");
+    window.location.href = "/login";
+  };
 
-            <button 
-                className="btn btn-outline-light"
-                onClick={() => {
-                    localStorage.removeItem("token");
-                    window.location.href = "/login";
-                }}
-            >
-                Cerrar Sesión
-            </button>
-        </nav>
-    );
+  return (
+    <nav className="navbar navbar-dark bg-dark px-3">
+      <span className="navbar-brand mb-0 h1">FinanzasPro Dashboard</span>
+      <button
+        className="btn btn-outline-light btn-sm"
+        type="button"
+        onClick={handleLogout}
+      >
+        Cerrar sesión
+      </button>
+    </nav>
+  );
 };
 
 export default NavbarDashboard;
