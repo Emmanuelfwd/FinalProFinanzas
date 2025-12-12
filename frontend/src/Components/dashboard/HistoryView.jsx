@@ -8,6 +8,7 @@ import {
   Filter,
 } from "lucide-react";
 import api from "../../services/api";
+import ConfirmDeleteModal from "./ConfirmDeleteModal";
 
 const HistoryView = () => {
   const [gastos, setGastos] = useState([]);
@@ -20,7 +21,11 @@ const HistoryView = () => {
   // 🔎 Filtros
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
-  const [estado, setEstado] = useState("todos"); // todos | activos | eliminados
+  const [estado, setEstado] = useState("todos");
+
+  // 🧨 Modal eliminar
+  const [showModal, setShowModal] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState(null);
 
   useEffect(() => {
     cargarTodo();
@@ -55,11 +60,20 @@ const HistoryView = () => {
     }
   };
 
-  const eliminarDefinitivo = async (endpoint, id) => {
-    if (!window.confirm("¿Eliminar definitivamente este registro?")) return;
+  const solicitarEliminar = (endpoint, id) => {
+    setDeleteTarget({ endpoint, id });
+    setShowModal(true);
+  };
+
+  const confirmarEliminar = async () => {
+    if (!deleteTarget) return;
 
     try {
-      await api.delete(`${endpoint}/${id}/force/`);
+      await api.delete(
+        `${deleteTarget.endpoint}/${deleteTarget.id}/force/`
+      );
+      setShowModal(false);
+      setDeleteTarget(null);
       cargarTodo();
     } catch (error) {
       console.error("Error eliminando definitivamente:", error);
@@ -67,9 +81,8 @@ const HistoryView = () => {
     }
   };
 
-  // Normalizamos filas
   const filas = useMemo(() => {
-    const base = [
+    return [
       ...gastos.map((g) => ({
         tipo: "gasto",
         id: g.id_gasto,
@@ -98,33 +111,23 @@ const HistoryView = () => {
         endpoint: "suscripciones",
       })),
     ];
-
-    return base;
   }, [gastos, ingresos, suscripciones]);
 
-  // Aplicar filtros
   const filasFiltradas = useMemo(() => {
     let data = [...filas];
 
-    // Filtro por tab (tipo)
     if (tab !== "todos") {
       data = data.filter((f) => f.tipo === tab);
     }
 
-    // Filtro por estado
     if (estado === "activos") {
       data = data.filter((f) => !f.eliminado);
     } else if (estado === "eliminados") {
       data = data.filter((f) => f.eliminado);
     }
 
-    // Filtro por fecha
-    if (desde) {
-      data = data.filter((f) => f.fecha >= desde);
-    }
-    if (hasta) {
-      data = data.filter((f) => f.fecha <= hasta);
-    }
+    if (desde) data = data.filter((f) => f.fecha >= desde);
+    if (hasta) data = data.filter((f) => f.fecha <= hasta);
 
     return data;
   }, [filas, tab, estado, desde, hasta]);
@@ -262,7 +265,7 @@ const HistoryView = () => {
               <td>
                 {f.eliminado ? (
                   <button
-                    className="btn btn-warning btn-sm me-2"
+                    className="btn btn-warning btn-sm"
                     onClick={() => restaurar(f.endpoint, f.id)}
                   >
                     <RotateCcw size={16} className="me-1" />
@@ -271,7 +274,7 @@ const HistoryView = () => {
                 ) : (
                   <button
                     className="btn btn-danger btn-sm"
-                    onClick={() => eliminarDefinitivo(f.endpoint, f.id)}
+                    onClick={() => solicitarEliminar(f.endpoint, f.id)}
                   >
                     <Trash2 size={16} className="me-1" />
                     Eliminar
@@ -282,6 +285,13 @@ const HistoryView = () => {
           ))}
         </tbody>
       </table>
+
+      {/* MODAL */}
+      <ConfirmDeleteModal
+        show={showModal}
+        onClose={() => setShowModal(false)}
+        onConfirm={confirmarEliminar}
+      />
     </div>
   );
 };
