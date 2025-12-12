@@ -104,6 +104,11 @@ const DashboardHome = () => {
     return f.getMonth() === mesSeleccionado && f.getFullYear() === anioSeleccionado;
   };
 
+  const finDeMesSeleccionado = useMemo(() => {
+    // Último día del mes seleccionado: new Date(año, mes+1, 0)
+    return new Date(anioSeleccionado, mesSeleccionado + 1, 0, 23, 59, 59);
+  }, [anioSeleccionado, mesSeleccionado]);
+
   const aCRC = (monto, idMoneda) => {
     const m = Number(monto || 0);
     if (Number.isNaN(m)) return 0;
@@ -129,13 +134,46 @@ const DashboardHome = () => {
   /* =========================================================
      Filtrados por periodo (mes/año) + KPIs con conversión
   ========================================================= */
-  const gastosMes = useMemo(() => gastos.filter((g) => esDelPeriodo(g.fecha)), [gastos, mesSeleccionado, anioSeleccionado]);
-  const ingresosMes = useMemo(() => ingresos.filter((i) => esDelPeriodo(i.fecha)), [ingresos, mesSeleccionado, anioSeleccionado]);
-
-  const totalGastosMesCRC = useMemo(
-    () => gastosMes.reduce((acc, g) => acc + aCRC(g.monto, g.id_moneda), 0),
-    [gastosMes, monedaPorId]
+  const gastosMes = useMemo(
+    () => gastos.filter((g) => esDelPeriodo(g.fecha)),
+    [gastos, mesSeleccionado, anioSeleccionado]
   );
+
+  const ingresosMes = useMemo(
+    () => ingresos.filter((i) => esDelPeriodo(i.fecha)),
+    [ingresos, mesSeleccionado, anioSeleccionado]
+  );
+
+  // Suscripciones que aplican al mes seleccionado:
+  // - activas
+  // - fecha_inicio <= fin de mes seleccionado
+  const suscripcionesPeriodo = useMemo(() => {
+    return suscripciones.filter((s) => {
+      if (s.estado !== true) return false;
+      if (!s.fecha_inicio) return true;
+
+      const fi = new Date(String(s.fecha_inicio).slice(0, 10) + "T00:00:00");
+      if (Number.isNaN(fi.getTime())) return true;
+
+      return fi <= finDeMesSeleccionado;
+    });
+  }, [suscripciones, finDeMesSeleccionado]);
+
+  const totalSuscripcionesMesCRC = useMemo(() => {
+    return suscripcionesPeriodo.reduce(
+      (acc, s) => acc + aCRC(s.monto_mensual, s.id_moneda),
+      0
+    );
+  }, [suscripcionesPeriodo, monedaPorId]);
+
+  const totalGastosMesCRC = useMemo(() => {
+    const gastosNormales = gastosMes.reduce(
+      (acc, g) => acc + aCRC(g.monto, g.id_moneda),
+      0
+    );
+    // ✅ IMPORTANTE: gastos del mes incluye suscripciones
+    return gastosNormales + totalSuscripcionesMesCRC;
+  }, [gastosMes, monedaPorId, totalSuscripcionesMesCRC]);
 
   const totalIngresosMesCRC = useMemo(
     () => ingresosMes.reduce((acc, i) => acc + aCRC(i.monto, i.id_moneda), 0),
@@ -145,31 +183,36 @@ const DashboardHome = () => {
   const saldoMesCRC = totalIngresosMesCRC - totalGastosMesCRC;
 
   const suscripcionesActivas = useMemo(() => {
-    // Tu modelo tiene boolean "estado" (según lo que ya vimos)
-    return suscripciones.filter((s) => s.estado === true).length;
-  }, [suscripciones]);
+    // ✅ Cuenta activas que aplican al mes seleccionado
+    return suscripcionesPeriodo.length;
+  }, [suscripcionesPeriodo]);
 
   /* =========================================================
      Gráfica: Gastos por categoría (Pie)
+     ✅ Incluye una categoría "Suscripciones"
   ========================================================= */
   const dataGastosPorCategoria = useMemo(() => {
-    if (!gastosMes.length) return [];
-
     const map = {};
+
     gastosMes.forEach((g) => {
       const idCat = g.id_categoria;
       const nombre = categoriaNombrePorId[idCat] || "Sin categoría";
       map[nombre] = (map[nombre] || 0) + aCRC(g.monto, g.id_moneda);
     });
 
+    if (totalSuscripcionesMesCRC > 0) {
+      map["Suscripciones"] = (map["Suscripciones"] || 0) + totalSuscripcionesMesCRC;
+    }
+
     return Object.entries(map).map(([name, value]) => ({
       name,
       value: Math.round(value),
     }));
-  }, [gastosMes, categoriaNombrePorId, monedaPorId]);
+  }, [gastosMes, categoriaNombrePorId, monedaPorId, totalSuscripcionesMesCRC]);
 
   /* =========================================================
      Gráfica: Comparación por categoría (Bar)
+     ✅ Gastos incluye "Suscripciones"
   ========================================================= */
   const dataComparacion = useMemo(() => {
     const map = {};
@@ -179,6 +222,13 @@ const DashboardHome = () => {
       map[nombre] = map[nombre] || { categoria: nombre, gastos: 0, ingresos: 0 };
       map[nombre].gastos += aCRC(g.monto, g.id_moneda);
     });
+
+    // ✅ sumar suscripciones a "Suscripciones" como gasto
+    if (totalSuscripcionesMesCRC > 0) {
+      const nombre = "Suscripciones";
+      map[nombre] = map[nombre] || { categoria: nombre, gastos: 0, ingresos: 0 };
+      map[nombre].gastos += totalSuscripcionesMesCRC;
+    }
 
     ingresosMes.forEach((i) => {
       const nombre = categoriaNombrePorId[i.id_categoria] || "Sin categoría";
@@ -191,7 +241,7 @@ const DashboardHome = () => {
       gastos: Math.round(x.gastos),
       ingresos: Math.round(x.ingresos),
     }));
-  }, [gastosMes, ingresosMes, categoriaNombrePorId, monedaPorId]);
+  }, [gastosMes, ingresosMes, categoriaNombrePorId, monedaPorId, totalSuscripcionesMesCRC]);
 
   return (
     <div className="p-3">
@@ -264,6 +314,7 @@ const DashboardHome = () => {
             <div>
               <div><strong>Gastos del Mes</strong></div>
               <div style={{ fontSize: 22 }}>{loading ? "..." : formatearCRC(totalGastosMesCRC)}</div>
+              <div className="text-muted" style={{ fontSize: 12 }}>Incluye suscripciones activas</div>
             </div>
           </div>
         </div>
@@ -276,6 +327,9 @@ const DashboardHome = () => {
             <div>
               <div><strong>Suscripciones Activas</strong></div>
               <div style={{ fontSize: 22 }}>{loading ? "..." : suscripcionesActivas}</div>
+              <div className="text-muted" style={{ fontSize: 12 }}>
+                Total: {loading ? "..." : formatearCRC(totalSuscripcionesMesCRC)}
+              </div>
             </div>
           </div>
         </div>
