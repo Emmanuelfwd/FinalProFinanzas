@@ -1,213 +1,194 @@
-import React, { useEffect, useState } from "react";
-import {
-  crearIngreso,
-  obtenerCategoriasIngreso,
-  obtenerMonedas,
-} from "../../services/ingresos";
+import { useEffect, useState } from "react";
+import api from "../../services/api";
+import { crearIngreso, actualizarIngreso } from "../../services/ingresos";
 
-export default function AddIngresoModal({ show, onClose, onCreated }) {
-  const [listaCategorias, setListaCategorias] = useState([]);
-  const [listaMonedas, setListaMonedas] = useState([]);
+const AddIngresoModal = ({ show, onClose, onSave, ingresoEditar }) => {
+  const isEdit = Boolean(ingresoEditar);
+
+  const [categorias, setCategorias] = useState([]);
+  const [monedas, setMonedas] = useState([]);
+
   const [idCategoria, setIdCategoria] = useState("");
   const [idMoneda, setIdMoneda] = useState("");
+
   const [monto, setMonto] = useState("");
-  const [fecha, setFecha] = useState("");
   const [descripcion, setDescripcion] = useState("");
-  const [estaGuardando, setEstaGuardando] = useState(false);
-  const [mensajeError, setMensajeError] = useState("");
+  const [fecha, setFecha] = useState("");
 
   useEffect(() => {
-    if (!show) return;
-
-    const cargarDatos = async () => {
+    const cargarCombos = async () => {
       try {
-        setMensajeError("");
-        const respuestaCategorias = await obtenerCategoriasIngreso();
-        setListaCategorias(respuestaCategorias.data || []);
-        const respuestaMonedas = await obtenerMonedas();
-        setListaMonedas(respuestaMonedas.data || []);
+        const [catRes, monRes] = await Promise.all([
+          api.get("categorias/"),
+          api.get("tipocambio/"),
+        ]);
+
+        // Solo categorías de INGRESO
+        const cats = Array.isArray(catRes.data)
+          ? catRes.data.filter(
+              (c) => c.tipo === "INGRESO" || c.tipo === "AMBOS"
+            )
+          : [];
+
+        setCategorias(cats);
+        setMonedas(Array.isArray(monRes.data) ? monRes.data : []);
       } catch (error) {
-        console.error(
-          "Error cargando datos del formulario de ingreso:",
-          error
-        );
-        setMensajeError(
-          "No se pudieron cargar las listas de categorías o monedas."
-        );
+        console.error("Error cargando combos:", error);
+        setCategorias([]);
+        setMonedas([]);
       }
     };
 
-    cargarDatos();
-  }, [show]);
+    cargarCombos();
+  }, []);
 
-  if (!show) return null;
+  useEffect(() => {
+    if (ingresoEditar) {
+      setIdCategoria(String(ingresoEditar.id_categoria ?? ""));
+      setIdMoneda(String(ingresoEditar.id_moneda ?? ""));
+      setMonto(ingresoEditar.monto ?? "");
+      setDescripcion(ingresoEditar.descripcion ?? "");
+      setFecha(ingresoEditar.fecha ?? "");
+    } else {
+      setIdCategoria("");
+      setIdMoneda("");
+      setMonto("");
+      setDescripcion("");
+      setFecha("");
+    }
+  }, [ingresoEditar]);
 
-  const manejarCerrar = () => {
-    if (estaGuardando) return;
-    setMensajeError("");
-    setIdCategoria("");
-    setIdMoneda("");
-    setMonto("");
-    setFecha("");
-    setDescripcion("");
-    onClose();
-  };
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  const manejarSubmit = async (evento) => {
-    evento.preventDefault();
-
-    if (!idCategoria || !idMoneda || !monto || !fecha) {
-      setMensajeError("Por favor completa todos los campos obligatorios.");
+    if (!idCategoria || !idMoneda) {
+      alert("Debe seleccionar categoría y moneda.");
       return;
     }
 
+    const payload = {
+      id_categoria: Number(idCategoria),
+      id_moneda: Number(idMoneda),
+      monto: Number(monto),
+      fecha,
+      descripcion,
+    };
+
     try {
-      setEstaGuardando(true);
-      setMensajeError("");
-
-      const datosAEnviar = {
-        id_categoria: idCategoria,
-        id_moneda: idMoneda,
-        monto,
-        fecha,
-        descripcion,
-      };
-
-      const respuesta = await crearIngreso(datosAEnviar);
-      console.log("Respuesta backend:", respuesta.data);
-
-      if (onCreated) await onCreated();
-      manejarCerrar();
+      if (isEdit) {
+        await actualizarIngreso(ingresoEditar.id_ingreso, payload);
+      } else {
+        await crearIngreso(payload);
+      }
+      onSave();
+      onClose();
     } catch (error) {
-      console.error("Error creando ingreso:", error);
-      let mensaje =
-        error.response?.data?.detail ||
-        JSON.stringify(error.response?.data) ||
-        "No se pudo guardar el ingreso.";
-      setMensajeError(mensaje);
-    } finally {
-      setEstaGuardando(false);
+      console.error("Error guardando ingreso:", error);
+      alert("Error al guardar ingreso.");
     }
   };
 
+  if (!show) return null;
+
   return (
-    <div className="modal d-block" tabIndex="-1" role="dialog">
-      <div className="modal-dialog" role="document">
-        <div className="modal-content income-modal">
-          <form onSubmit={manejarSubmit}>
-            <header className="modal-header">
-              <h5 className="modal-title">Agregar ingreso</h5>
-              <button
-                type="button"
-                className="btn-close"
-                onClick={manejarCerrar}
-              ></button>
-            </header>
-
-            <div className="modal-body">
-              {mensajeError && (
-                <div className="alert alert-danger">{mensajeError}</div>
-              )}
-
-              <div className="mb-3">
-                <label className="form-label">
-                  Categoría <span className="text-danger">*</span>
-                </label>
-                <select
-                  className="form-select"
-                  value={idCategoria}
-                  onChange={(e) => setIdCategoria(e.target.value)}
-                >
-                  <option value="">Seleccione</option>
-                  {listaCategorias.map((categoria) => (
-                    <option
-                      key={categoria.id_categoria}
-                      value={categoria.id_categoria}
-                    >
-                      {categoria.nombre_categoria}
-                    </option>
-                  ))}
-                </select>
+    <>
+      <div className="modal fade show d-block" style={{ zIndex: 1055 }}>
+        <div className="modal-dialog modal-dialog-centered">
+          <div className="modal-content">
+            <form onSubmit={handleSubmit}>
+              <div className="modal-header">
+                <h5 className="modal-title">
+                  {isEdit ? "Editar ingreso" : "Agregar ingreso"}
+                </h5>
+                <button className="btn-close" onClick={onClose} />
               </div>
 
-              <div className="mb-3">
-                <label className="form-label">
-                  Moneda <span className="text-danger">*</span>
-                </label>
-                <select
-                  className="form-select"
-                  value={idMoneda}
-                  onChange={(e) => setIdMoneda(e.target.value)}
-                >
-                  <option value="">Seleccione</option>
-                  {listaMonedas.map((moneda) => (
-                    <option
-                      key={moneda.id_moneda}
-                      value={moneda.id_moneda}
-                    >
-                      {moneda.nombre_moneda}
-                    </option>
-                  ))}
-                </select>
+              <div className="modal-body">
+                <div className="mb-3">
+                  <label className="form-label">Fuente *</label>
+                  <select
+                    className="form-select"
+                    value={idCategoria}
+                    onChange={(e) => setIdCategoria(e.target.value)}
+                    required
+                  >
+                    <option value="">Seleccione</option>
+                    {categorias.map((c) => (
+                      <option key={c.id_categoria} value={c.id_categoria}>
+                        {c.nombre_categoria}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">Moneda *</label>
+                  <select
+                    className="form-select"
+                    value={idMoneda}
+                    onChange={(e) => setIdMoneda(e.target.value)}
+                    required
+                  >
+                    <option value="">Seleccione</option>
+                    {monedas.map((m) => (
+                      <option key={m.id_moneda} value={m.id_moneda}>
+                        {m.nombre_moneda}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">Monto *</label>
+                  <input
+                    type="number"
+                    className="form-control"
+                    value={monto}
+                    onChange={(e) => setMonto(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">Fecha *</label>
+                  <input
+                    type="date"
+                    className="form-control"
+                    value={fecha}
+                    onChange={(e) => setFecha(e.target.value)}
+                    required
+                  />
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label">Descripción</label>
+                  <input
+                    className="form-control"
+                    value={descripcion}
+                    onChange={(e) => setDescripcion(e.target.value)}
+                  />
+                </div>
               </div>
 
-              <div className="mb-3">
-                <label className="form-label">
-                  Monto <span className="text-danger">*</span>
-                </label>
-                <input
-                  type="number"
-                  className="form-control"
-                  value={monto}
-                  onChange={(e) => setMonto(e.target.value)}
-                  placeholder="Ej: 250000"
-                />
+              <div className="modal-footer">
+                <button className="btn btn-secondary" onClick={onClose}>
+                  Cancelar
+                </button>
+                <button className="btn btn-primary" type="submit">
+                  {isEdit ? "Guardar cambios" : "Guardar ingreso"}
+                </button>
               </div>
-
-              <div className="mb-3">
-                <label className="form-label">
-                  Fecha <span className="text-danger">*</span>
-                </label>
-                <input
-                  type="date"
-                  className="form-control"
-                  value={fecha}
-                  onChange={(e) => setFecha(e.target.value)}
-                />
-              </div>
-
-              <div className="mb-3">
-                <label className="form-label">Descripción</label>
-                <textarea
-                  className="form-control"
-                  value={descripcion}
-                  onChange={(e) => setDescripcion(e.target.value)}
-                  placeholder="Ej: salario, freelance, servicios, etc."
-                  rows="2"
-                />
-              </div>
-            </div>
-
-            <footer className="modal-footer">
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={manejarCerrar}
-                disabled={estaGuardando}
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                className="btn btn-primary"
-                disabled={estaGuardando}
-              >
-                {estaGuardando ? "Guardando..." : "Guardar ingreso"}
-              </button>
-            </footer>
-          </form>
+            </form>
+          </div>
         </div>
       </div>
-    </div>
+
+      <div
+        className="modal-backdrop fade show"
+        style={{ zIndex: 1050, pointerEvents: "none" }}
+      />
+    </>
   );
-}
+};
+
+export default AddIngresoModal;

@@ -1,4 +1,3 @@
-// frontend/src/Components/dashboard/SidebarDashboard.jsx
 import React from "react";
 import { NavLink } from "react-router-dom";
 

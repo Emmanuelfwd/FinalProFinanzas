@@ -1,142 +1,158 @@
-import React, { useEffect, useState } from "react";
-import "../../styles/income.css";
-import {
-  obtenerIngresos,
-  eliminarIngreso,
-} from "../../services/ingresos";
+import { useEffect, useMemo, useState } from "react";
 import AddIngresoModal from "./AddIngresoModal";
-import EditIngresoModal from "./EditIngresoModal";
+import api from "../../services/api";
+import { obtenerIngresos, eliminarIngreso } from "../../services/ingresos";
 
-export default function IncomeView() {
-  const [listaIngresos, setListaIngresos] = useState([]);
-  const [estaCargando, setEstaCargando] = useState(false);
-  const [mensajeError, setMensajeError] = useState("");
-  const [mostrarModalAgregarIngreso, setMostrarModalAgregarIngreso] =
-    useState(false);
-  const [mostrarModalEditarIngreso, setMostrarModalEditarIngreso] =
-    useState(false);
-  const [ingresoSeleccionado, setIngresoSeleccionado] = useState(null);
+const IncomeView = () => {
+  const [ingresos, setIngresos] = useState([]);
+  const [categorias, setCategorias] = useState([]);
+  const [monedas, setMonedas] = useState([]);
 
+  const [showModal, setShowModal] = useState(false);
+  const [ingresoEditar, setIngresoEditar] = useState(null);
+
+  /* ===============================
+     Cargar categorías y monedas
+  =============================== */
+  const cargarCombos = async () => {
+    try {
+      const [catRes, monRes] = await Promise.all([
+        api.get("categorias/"),
+        api.get("tipocambio/"),
+      ]);
+
+      setCategorias(Array.isArray(catRes.data) ? catRes.data : []);
+      setMonedas(Array.isArray(monRes.data) ? monRes.data : []);
+    } catch (error) {
+      console.error("Error cargando combos:", error);
+      setCategorias([]);
+      setMonedas([]);
+    }
+  };
+
+  /* ===============================
+     Cargar ingresos (✔️ CORRECTO)
+  =============================== */
   const cargarIngresos = async () => {
     try {
-      setEstaCargando(true);
-      setMensajeError("");
-      const respuesta = await obtenerIngresos();
-      setListaIngresos(respuesta.data || []);
+      const data = await obtenerIngresos(); // 👈 YA ES data
+      setIngresos(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error cargando ingresos:", error);
-      setMensajeError("No se pudieron cargar los ingresos.");
-    } finally {
-      setEstaCargando(false);
+      setIngresos([]);
     }
   };
 
   useEffect(() => {
+    cargarCombos();
     cargarIngresos();
   }, []);
 
-  const manejarAbrirModalAgregar = () => {
-    setMostrarModalAgregarIngreso(true);
+  /* ===============================
+     Maps id → nombre
+  =============================== */
+  const categoriasMap = useMemo(() => {
+    const map = {};
+    categorias.forEach((c) => {
+      map[c.id_categoria] = c.nombre_categoria;
+    });
+    return map;
+  }, [categorias]);
+
+  const monedasMap = useMemo(() => {
+    const map = {};
+    monedas.forEach((m) => {
+      map[m.id_moneda] = m.nombre_moneda;
+    });
+    return map;
+  }, [monedas]);
+
+  /* ===============================
+     Acciones
+  =============================== */
+  const handleEliminar = async (id) => {
+    await eliminarIngreso(id);
+    cargarIngresos();
   };
 
-  const manejarCerrarModalAgregar = () => {
-    setMostrarModalAgregarIngreso(false);
+  const handleEditar = (ingreso) => {
+    setIngresoEditar(ingreso);
+    setShowModal(true);
   };
 
-  const manejarAbrirModalEditar = (ingreso) => {
-    setIngresoSeleccionado(ingreso);
-    setMostrarModalEditarIngreso(true);
+  const handleNuevo = () => {
+    setIngresoEditar(null);
+    setShowModal(true);
   };
 
-  const manejarCerrarModalEditar = () => {
-    setIngresoSeleccionado(null);
-    setMostrarModalEditarIngreso(false);
-  };
-
-  const manejarEliminarIngreso = async (idIngreso) => {
-    const confirmacion = window.confirm(
-      "¿Seguro deseas eliminar este ingreso?"
-    );
-    if (!confirmacion) return;
-    try {
-      await eliminarIngreso(idIngreso);
-      await cargarIngresos();
-    } catch (error) {
-      console.error("Error eliminando ingreso:", error);
-      alert("No se pudo eliminar el ingreso.");
-    }
-  };
-
+  /* ===============================
+     Render
+  =============================== */
   return (
-    <div>
+    <div className="p-3">
       <div className="d-flex justify-content-between align-items-center mb-3">
-        <h2 className="mb-0">Ingresos</h2>
-        <button
-          className="btn btn-primary"
-          onClick={manejarAbrirModalAgregar}
-        >
-          + Agregar ingreso
+        <h4>Ingresos</h4>
+        <button className="btn btn-primary" onClick={handleNuevo}>
+          Agregar Ingreso
         </button>
       </div>
 
-      {mensajeError && (
-        <div className="alert alert-danger">{mensajeError}</div>
-      )}
+      <div className="table-responsive">
+        <table className="table table-striped table-bordered">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Fuente</th>
+              <th>Descripción</th>
+              <th>Monto</th>
+              <th>Moneda</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {ingresos.map((i) => (
+              <tr key={i.id_ingreso}>
+                <td>{i.fecha}</td>
+                <td>{categoriasMap[i.id_categoria] || "—"}</td>
+                <td>{i.descripcion}</td>
+                <td>{i.monto}</td>
+                <td>{monedasMap[i.id_moneda] || "—"}</td>
+                <td>
+                  <button
+                    className="btn btn-sm btn-warning me-2"
+                    onClick={() => handleEditar(i)}
+                  >
+                    Editar
+                  </button>
+                  <button
+                    className="btn btn-sm btn-danger"
+                    onClick={() => handleEliminar(i.id_ingreso)}
+                  >
+                    Eliminar
+                  </button>
+                </td>
+              </tr>
+            ))}
 
-      {estaCargando ? (
-        <p>Cargando ingresos...</p>
-      ) : listaIngresos.length === 0 ? (
-        <p>No tienes ingresos registrados. Usa “Agregar ingreso”.</p>
-      ) : (
-        <div className="row g-3">
-          {listaIngresos.map((ingreso) => (
-            <div className="col-md-4" key={ingreso.id_ingreso}>
-              <div className="card h-100">
-                <div className="card-body">
-                  <h3 className="h6">
-                    {ingreso.descripcion || "Ingreso"}
-                  </h3>
-                  <p className="mb-1">{ingreso.fecha}</p>
-                  <p className="mb-2">₡ {ingreso.monto}</p>
-                  <div className="d-flex gap-2">
-                    <button
-                      className="btn btn-sm btn-outline-secondary"
-                      onClick={() => manejarAbrirModalEditar(ingreso)}
-                    >
-                      Editar
-                    </button>
-                    <button
-                      className="btn btn-sm btn-outline-danger"
-                      onClick={() =>
-                        manejarEliminarIngreso(ingreso.id_ingreso)
-                      }
-                    >
-                      Eliminar
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+            {ingresos.length === 0 && (
+              <tr>
+                <td colSpan="6" className="text-center text-muted">
+                  No hay ingresos registrados
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
 
-      {mostrarModalAgregarIngreso && (
-        <AddIngresoModal
-          show={mostrarModalAgregarIngreso}
-          onClose={manejarCerrarModalAgregar}
-          onCreated={cargarIngresos}
-        />
-      )}
-
-      {mostrarModalEditarIngreso && ingresoSeleccionado && (
-        <EditIngresoModal
-          show={mostrarModalEditarIngreso}
-          ingreso={ingresoSeleccionado}
-          onClose={manejarCerrarModalEditar}
-          onUpdated={cargarIngresos}
-        />
-      )}
+      <AddIngresoModal
+        show={showModal}
+        onClose={() => setShowModal(false)}
+        onSave={cargarIngresos}
+        ingresoEditar={ingresoEditar}
+      />
     </div>
   );
-}
+};
+
+export default IncomeView;

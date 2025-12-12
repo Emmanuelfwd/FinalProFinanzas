@@ -1,105 +1,158 @@
-// frontend/src/Components/dashboard/ExpensesView.jsx
-import React, { useEffect, useState } from "react";
-import { obtenerGastos, eliminarGasto } from "../../services/gastos";
+import { useEffect, useMemo, useState } from "react";
 import AddGastoModal from "./AddGastoModal";
-import "../../styles/expenses.css";
+import api from "../../services/api";
+import { obtenerGastos, eliminarGasto } from "../../services/gastos";
 
-export default function ExpensesView() {
+const ExpensesView = () => {
   const [gastos, setGastos] = useState([]);
-  const [mostrarModalAgregar, setMostrarModalAgregar] = useState(false);
-  const [cargando, setCargando] = useState(false);
-  const [error, setError] = useState("");
+  const [categorias, setCategorias] = useState([]);
+  const [monedas, setMonedas] = useState([]);
 
-  const cargarGastos = async () => {
+  const [showModal, setShowModal] = useState(false);
+  const [gastoEditar, setGastoEditar] = useState(null);
+
+  /* ===============================
+     Cargar categorías y monedas
+  =============================== */
+  const cargarCombos = async () => {
     try {
-      setCargando(true);
-      setError("");
-      const respuesta = await obtenerGastos();
-      setGastos(respuesta.data || []);
-    } catch (e) {
-      console.error("Error cargando gastos:", e);
-      setError("No se pudieron cargar los gastos.");
-    } finally {
-      setCargando(false);
+      const [catRes, monRes] = await Promise.all([
+        api.get("categorias/"),
+        api.get("tipocambio/"),
+      ]);
+
+      setCategorias(Array.isArray(catRes.data) ? catRes.data : []);
+      setMonedas(Array.isArray(monRes.data) ? monRes.data : []);
+    } catch (error) {
+      console.error("Error cargando combos:", error);
+      setCategorias([]);
+      setMonedas([]);
     }
   };
 
-  const manejarEliminar = async (idGasto) => {
-    if (!window.confirm("¿Seguro que deseas eliminar este gasto?")) return;
+  /* ===============================
+     Cargar gastos (✔️ CORRECTO)
+  =============================== */
+  const cargarGastos = async () => {
     try {
-      await eliminarGasto(idGasto);
-      await cargarGastos();
-    } catch (e) {
-      console.error("Error eliminando gasto:", e);
-      alert("No se pudo eliminar el gasto.");
+      const data = await obtenerGastos(); // ⬅️ data REAL
+      setGastos(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Error cargando gastos:", error);
+      setGastos([]);
     }
   };
 
   useEffect(() => {
+    cargarCombos();
     cargarGastos();
   }, []);
 
+  /* ===============================
+     Maps id → nombre
+  =============================== */
+  const categoriasMap = useMemo(() => {
+    const map = {};
+    categorias.forEach((c) => {
+      map[c.id_categoria] = c.nombre_categoria;
+    });
+    return map;
+  }, [categorias]);
+
+  const monedasMap = useMemo(() => {
+    const map = {};
+    monedas.forEach((m) => {
+      map[m.id_moneda] = m.nombre_moneda;
+    });
+    return map;
+  }, [monedas]);
+
+  /* ===============================
+     Acciones
+  =============================== */
+  const handleEliminar = async (id) => {
+    await eliminarGasto(id);
+    cargarGastos();
+  };
+
+  const handleEditar = (gasto) => {
+    setGastoEditar(gasto);
+    setShowModal(true);
+  };
+
+  const handleNuevo = () => {
+    setGastoEditar(null);
+    setShowModal(true);
+  };
+
+  /* ===============================
+     Render
+  =============================== */
   return (
-    <div>
+    <div className="p-3">
       <div className="d-flex justify-content-between align-items-center mb-3">
-        <h2 className="mb-0">Gastos</h2>
-        <button
-          className="btn btn-primary"
-          onClick={() => setMostrarModalAgregar(true)}
-        >
-          + Agregar gasto
+        <h4>Gastos</h4>
+        <button className="btn btn-primary" onClick={handleNuevo}>
+          Agregar Gasto
         </button>
       </div>
 
-      {error && <div className="alert alert-danger">{error}</div>}
+      <div className="table-responsive">
+        <table className="table table-striped table-bordered">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Categoría</th>
+              <th>Descripción</th>
+              <th>Monto</th>
+              <th>Moneda</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {gastos.map((g) => (
+              <tr key={g.id_gasto}>
+                <td>{g.fecha}</td>
+                <td>{categoriasMap[g.id_categoria] || "—"}</td>
+                <td>{g.descripcion}</td>
+                <td>{g.monto}</td>
+                <td>{monedasMap[g.id_moneda] || "—"}</td>
+                <td>
+                  <button
+                    className="btn btn-sm btn-warning me-2"
+                    onClick={() => handleEditar(g)}
+                  >
+                    Editar
+                  </button>
+                  <button
+                    className="btn btn-sm btn-danger"
+                    onClick={() => handleEliminar(g.id_gasto)}
+                  >
+                    Eliminar
+                  </button>
+                </td>
+              </tr>
+            ))}
 
-      {cargando ? (
-        <p>Cargando gastos...</p>
-      ) : gastos.length === 0 ? (
-        <p>No tienes gastos registrados todavía.</p>
-      ) : (
-        <div className="row g-3">
-          {gastos.map((gasto) => (
-            <div className="col-md-4" key={gasto.id_gasto}>
-              <div className="card h-100">
-                <div className="card-body">
-                  <h4 className="h6">
-                    {gasto.descripcion || "Gasto sin descripción"}
-                  </h4>
-                  <p className="mb-1">Monto: {gasto.monto}</p>
-                  <p className="mb-2">Fecha: {gasto.fecha}</p>
-                  <div className="d-flex gap-2">
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-outline-secondary"
-                      onClick={() =>
-                        alert("Pantalla de editar viene en el siguiente paso")
-                      }
-                    >
-                      Editar
-                    </button>
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-outline-danger"
-                      onClick={() => manejarEliminar(gasto.id_gasto)}
-                    >
-                      Eliminar
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+            {gastos.length === 0 && (
+              <tr>
+                <td colSpan="6" className="text-center text-muted">
+                  No hay gastos registrados
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
 
-      {mostrarModalAgregar && (
-        <AddGastoModal
-          show={mostrarModalAgregar}
-          onClose={() => setMostrarModalAgregar(false)}
-          onCreated={cargarGastos}
-        />
-      )}
+      <AddGastoModal
+        show={showModal}
+        onClose={() => setShowModal(false)}
+        onSave={cargarGastos}
+        gastoEditar={gastoEditar}
+      />
     </div>
   );
-}
+};
+
+export default ExpensesView;

@@ -1,39 +1,34 @@
-// frontend/src/services/ingresos.js
-import API from "./api";
+import api from "./api";
 
-function getAuthHeaders() {
-  const token = localStorage.getItem("token");
-  return {
-    Authorization: `Bearer ${token}`,
-    "Content-Type": "application/json",
-  };
-}
+/* ===============================
+   OBTENER INGRESOS
+   (devuelve DATA directamente)
+=============================== */
+export const obtenerIngresos = async () => {
+  const response = await api.get("ingresos/");
+  return response.data;
+};
 
-export function obtenerIngresos() {
-  const idUsuario = localStorage.getItem("userId");
-  return API.get(`ingresos/?usuario=${idUsuario}`, {
-    headers: getAuthHeaders(),
-  });
-}
+/* ===============================
+   CREAR INGRESO
+=============================== */
+export const crearIngreso = async (data) => {
+  const response = await api.post("ingresos/", data);
+  return response.data;
+};
 
-export function crearIngreso(datos) {
-  return API.post("ingresos/", datos, { headers: getAuthHeaders() });
-}
+/* ===============================
+   ACTUALIZAR INGRESO
+=============================== */
+export const actualizarIngreso = async (id, data) => {
+  const response = await api.put(`ingresos/${id}/`, data);
+  return response.data;
+};
 
-export function actualizarIngreso(idIngreso, datos) {
-  return API.put(`ingresos/${idIngreso}/`, datos, {
-    headers: getAuthHeaders(),
-  });
-}
-
-export function eliminarIngreso(idIngreso) {
-  return API.delete(`ingresos/${idIngreso}/`, { headers: getAuthHeaders() });
-}
-
-export function obtenerCategoriasIngreso() {
-  return API.get("categorias/?tipo=INGRESO", { headers: getAuthHeaders() });
-}
-
-export function obtenerMonedas() {
-  return API.get("tipocambio/", { headers: getAuthHeaders() });
-}
+/* ===============================
+   ELIMINAR INGRESO
+=============================== */
+export const eliminarIngreso = async (id) => {
+  const response = await api.delete(`ingresos/${id}/`);
+  return response.data;
+};

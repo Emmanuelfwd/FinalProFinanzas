@@ -1,363 +1,286 @@
-// frontend/src/Components/dashboard/DashboardHome.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import api from "../../services/api";
+import { Wallet, TrendingUp, TrendingDown, CalendarCheck } from "lucide-react";
 import {
   PieChart,
   Pie,
   Cell,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
   BarChart,
   Bar,
   XAxis,
   YAxis,
-  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
 } from "recharts";
-import { Wallet, TrendingUp, TrendingDown, CalendarClock } from "lucide-react";
-import { obtenerGastos } from "../../services/gastos";
-import { obtenerIngresos } from "../../services/ingresos";
-import { obtenerSuscripciones } from "../../services/suscripciones";
-import API from "../../services/api";
-import "../../styles/dashboard.css";
 
-const COLORS = [
-  "#6366F1",
-  "#EC4899",
-  "#22C55E",
-  "#F97316",
-  "#06B6D4",
-  "#A855F7",
-  "#EAB308",
-];
+/* ===============================
+   TIPOS DE CAMBIO (DEFAULT)
+   Puedes ajustarlos cuando quieras
+================================ */
+const TIPOS_CAMBIO_DEFAULT = {
+  USD: 530,
+  EUR: 580,
+};
+
+const COLORS = ["#0d6efd", "#dc3545", "#198754", "#ffc107", "#6f42c1"];
 
 const DashboardHome = () => {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [gastos, setGastos] = useState([]);
+  const [ingresos, setIngresos] = useState([]);
+  const [suscripciones, setSuscripciones] = useState([]);
 
-  const [resumen, setResumen] = useState({
-    saldoActual: 0,
-    ingresosMes: 0,
-    gastosMes: 0,
-    suscripcionesActivas: 0,
-  });
+  const hoy = new Date();
+  const [mesSeleccionado, setMesSeleccionado] = useState(hoy.getMonth());
+  const [anioSeleccionado, setAnioSeleccionado] = useState(hoy.getFullYear());
 
-  const [gastosMes, setGastosMes] = useState([]);
-  const [inversionMes, setIngresosMes] = useState([]); // nombre interno, no se muestra
-  const [ingresosMes, setIngresosMesState] = useState([]);
-  const [categorias, setCategorias] = useState([]);
-
+  /* ===============================
+     CARGA DE DATOS (SIN TIPO-CAMBIO)
+  =============================== */
   useEffect(() => {
-    const cargarDatos = async () => {
+    const cargarTodo = async () => {
       try {
-        setLoading(true);
-        setError("");
+        const [gastosRes, ingresosRes, susRes] = await Promise.all([
+          api.get("gastos/"),
+          api.get("ingresos/"),
+          api.get("suscripciones/"),
+        ]);
 
-        const [gastosRes, ingresosRes, categoriasRes, suscripcionesRes] =
-          await Promise.all([
-            obtenerGastos(),
-            obtenerIngresos(),
-            API.get("categorias/"),
-            obtenerSuscripciones(),
-          ]);
+        setGastos(Array.isArray(gastosRes.data) ? gastosRes.data : []);
 
-        const hoy = new Date();
-        const mesActual = hoy.getMonth() + 1;
-        const anioActual = hoy.getFullYear();
+        const ingresosData =
+          ingresosRes.data?.results ??
+          ingresosRes.data?.ingresos ??
+          ingresosRes.data ??
+          [];
+        setIngresos(Array.isArray(ingresosData) ? ingresosData : []);
 
-        const esDelMesActual = (fechaStr) => {
-          if (!fechaStr) return false;
-          const fecha = new Date(fechaStr);
-          return (
-            fecha.getMonth() + 1 === mesActual &&
-            fecha.getFullYear() === anioActual
-          );
-        };
-
-        const gastosTodos = gastosRes.data || [];
-        const ingresosTodos = ingresosRes.data || [];
-        const categoriasTodas = categoriasRes.data || [];
-        const suscripcionesTodas = suscripcionesRes.data || [];
-
-        const gastosFiltrados = gastosTodos.filter((g) =>
-          esDelMesActual(g.fecha)
-        );
-        const ingresosFiltrados = ingresosTodos.filter((i) =>
-          esDelMesActual(i.fecha)
-        );
-
-        const totalGastosMes = gastosFiltrados.reduce(
-          (acc, g) => acc + Number(g.monto || 0),
-          0
-        );
-        const totalIngresosMes = ingresosFiltrados.reduce(
-          (acc, i) => acc + Number(i.monto || 0),
-          0
-        );
-        const saldoActual = totalIngresosMes - totalGastosMes;
-
-        const suscripcionesActivas = suscripcionesTodas.filter(
-          (s) => s.estado === true
-        ).length;
-
-        setResumen({
-          saldoActual,
-          ingresosMes: totalIngresosMes,
-          gastosMes: totalGastosMes,
-          suscripcionesActivas,
-        });
-
-        setGastosMes(gastosFiltrados);
-        setIngresosMes(ingresosFiltrados);
-        setIngresosMesState(ingresosFiltrados);
-        setCategorias(categoriasTodas);
+        setSuscripciones(Array.isArray(susRes.data) ? susRes.data : []);
       } catch (err) {
-        console.error("Error cargando datos del dashboard:", err);
-        setError(
-          "No se pudieron cargar los datos del resumen. Intenta nuevamente."
-        );
-      } finally {
-        setLoading(false);
+        console.error("Error cargando dashboard:", err);
       }
     };
 
-    cargarDatos();
+    cargarTodo();
   }, []);
 
-  // --- Helper para formatear moneda ---
-  const formatoMoneda = (valor) => {
-    const numero = Number(valor || 0);
-    if (Number.isNaN(numero)) return "₡0";
-    return numero.toLocaleString("es-CR", {
-      style: "currency",
-      currency: "CRC",
-      minimumFractionDigits: 0,
-    });
+  /* ===============================
+     HELPERS FINANCIEROS
+  =============================== */
+
+  const convertirAColones = (monto, moneda) => {
+    const m = Number(monto);
+    if (Number.isNaN(m)) return 0;
+    if (!moneda || moneda === "CRC") return m;
+
+    const tipo = TIPOS_CAMBIO_DEFAULT[moneda];
+    return tipo ? m * tipo : m;
   };
 
-  // --- Datos para "Gastos por categoría" ---
+  const perteneceAlPeriodo = (fecha) => {
+    if (!fecha) return false;
+    const f = new Date(String(fecha).slice(0, 10) + "T00:00:00");
+    return (
+      f.getMonth() === mesSeleccionado &&
+      f.getFullYear() === anioSeleccionado
+    );
+  };
+
+  const meses = [
+    "Enero","Febrero","Marzo","Abril","Mayo","Junio",
+    "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre",
+  ];
+
+  /* ===============================
+     DATOS FILTRADOS
+  =============================== */
+
+  const gastosPeriodo = gastos.filter((g) => perteneceAlPeriodo(g.fecha));
+  const ingresosPeriodo = ingresos.filter((i) => perteneceAlPeriodo(i.fecha));
+
+  /* ===============================
+     KPIs
+  =============================== */
+
+  const totalGastos = useMemo(
+    () =>
+      gastosPeriodo.reduce(
+        (acc, g) => acc + convertirAColones(g.monto, g.moneda),
+        0
+      ),
+    [gastosPeriodo]
+  );
+
+  const totalIngresos = useMemo(
+    () =>
+      ingresosPeriodo.reduce(
+        (acc, i) => acc + convertirAColones(i.monto, i.moneda),
+        0
+      ),
+    [ingresosPeriodo]
+  );
+
+  const saldoActual = totalIngresos - totalGastos;
+
+  const suscripcionesActivas = suscripciones.filter(
+    (s) => s.estado === true
+  ).length;
+
+  /* ===============================
+     GRÁFICAS
+  =============================== */
+
   const gastosPorCategoria = useMemo(() => {
-    if (!gastosMes.length || !categorias.length) return [];
+    const map = {};
+    gastosPeriodo.forEach((g) => {
+      const cat = g.categoria_nombre || "Sin categoría";
+      map[cat] =
+        (map[cat] || 0) + convertirAColones(g.monto, g.moneda);
+    });
+    return Object.entries(map).map(([name, value]) => ({ name, value }));
+  }, [gastosPeriodo]);
 
-    const mapaCategorias = new Map(
-      categorias.map((c) => [c.id_categoria, c])
-    );
+  const comparacionCategorias = useMemo(() => {
+    const map = {};
 
-    const acumulado = {};
-
-    gastosMes.forEach((g) => {
-      const categoria = mapaCategorias.get(g.id_categoria);
-      const nombre = categoria?.nombre_categoria || "Sin categoría";
-      acumulado[nombre] = (acumulado[nombre] || 0) + Number(g.monto || 0);
+    gastosPeriodo.forEach((g) => {
+      const cat = g.categoria_nombre || "Sin categoría";
+      map[cat] = map[cat] || { categoria: cat, gastos: 0, ingresos: 0 };
+      map[cat].gastos += convertirAColones(g.monto, g.moneda);
     });
 
-    return Object.entries(acumulado).map(([name, value]) => ({
-      name,
-      value,
-    }));
-  }, [gastosMes, categorias]);
-
-  // --- Datos para "Comparación por categoría" ---
-  const comparacionPorCategoria = useMemo(() => {
-    if ((!gastosMes.length && !ingresosMes.length) || !categorias.length)
-      return [];
-
-    const mapaCategorias = new Map(
-      categorias.map((c) => [c.id_categoria, c])
-    );
-
-    const gastosAcumulados = {};
-    const ingresosAcumulados = {};
-
-    gastosMes.forEach((g) => {
-      const categoria = mapaCategorias.get(g.id_categoria);
-      const nombre = categoria?.nombre_categoria || "Sin categoría";
-      gastosAcumulados[nombre] =
-        (gastosAcumulados[nombre] || 0) + Number(g.monto || 0);
+    ingresosPeriodo.forEach((i) => {
+      const cat = i.categoria_nombre || "Sin categoría";
+      map[cat] = map[cat] || { categoria: cat, gastos: 0, ingresos: 0 };
+      map[cat].ingresos += convertirAColones(i.monto, i.moneda);
     });
 
-    ingresosMes.forEach((i) => {
-      const categoria = mapaCategorias.get(i.id_categoria);
-      const nombre = categoria?.nombre_categoria || "Sin categoría";
-      ingresosAcumulados[nombre] =
-        (ingresosAcumulados[nombre] || 0) + Number(i.monto || 0);
-    });
+    return Object.values(map);
+  }, [gastosPeriodo, ingresosPeriodo]);
 
-    const nombresCategorias = new Set([
-      ...Object.keys(gastosAcumulados),
-      ...Object.keys(ingresosAcumulados),
-    ]);
-
-    return Array.from(nombresCategorias).map((nombre) => ({
-      categoria: nombre,
-      gastos: gastosAcumulados[nombre] || 0,
-      ingresos: ingresosAcumulados[nombre] || 0,
-    }));
-  }, [gastosMes, ingresosMes, categorias]);
+  /* ===============================
+     UI
+  =============================== */
 
   return (
-    <div>
-      <h2 className="mb-3">Inicio del Dashboard</h2>
-      <p className="text-muted mb-4">
-        Aquí tienes un resumen de tus finanzas del mes actual.
-      </p>
+    <div className="p-3">
+      <h3>Inicio del Dashboard</h3>
+      <p>Resumen financiero del mes seleccionado.</p>
 
-      {error && (
-        <div className="alert alert-danger" role="alert">
-          {error}
+      {/* Selector de periodo */}
+      <div className="d-flex gap-2 mb-3 align-items-end">
+        <div>
+          <label className="form-label">Mes</label>
+          <select
+            className="form-select"
+            value={mesSeleccionado}
+            onChange={(e) => setMesSeleccionado(Number(e.target.value))}
+          >
+            {meses.map((m, i) => (
+              <option key={m} value={i}>{m}</option>
+            ))}
+          </select>
         </div>
-      )}
 
-      {/* Tarjetas resumen (parte verde de tu imagen) */}
+        <div>
+          <label className="form-label">Año</label>
+          <input
+            type="number"
+            className="form-control"
+            value={anioSeleccionado}
+            onChange={(e) => setAnioSeleccionado(Number(e.target.value))}
+          />
+        </div>
+      </div>
+
+      {/* Cards */}
       <div className="row g-3 mb-4">
-        <div className="col-12 col-sm-6 col-xl-3">
-          <div className="card dashboard-summary-card h-100 border-0 shadow-sm">
-            <div className="card-body d-flex align-items-center">
-              <div className="dashboard-summary-icon me-3 bg-primary-subtle text-primary">
-                <Wallet size={24} />
-              </div>
-              <div>
-                <p className="text-muted mb-1 small">Saldo Actual</p>
-                <h5 className="mb-0 fw-bold">
-                  {formatoMoneda(resumen.saldoActual)}
-                </h5>
-              </div>
+        <div className="col-md-3">
+          <div className="dashboard-summary-card">
+            <div className="dashboard-summary-icon bg-primary">
+              <Wallet size={22} />
+            </div>
+            <div>
+              <h6>Saldo</h6>
+              <h4>₡{saldoActual.toLocaleString()}</h4>
             </div>
           </div>
         </div>
 
-        <div className="col-12 col-sm-6 col-xl-3">
-          <div className="card dashboard-summary-card h-100 border-0 shadow-sm">
-            <div className="card-body d-flex align-items-center">
-              <div className="dashboard-summary-icon me-3 bg-success-subtle text-success">
-                <TrendingUp size={24} />
-              </div>
-              <div>
-                <p className="text-muted mb-1 small">Ingresos del Mes</p>
-                <h5 className="mb-0 fw-bold">
-                  {formatoMoneda(resumen.ingresosMes)}
-                </h5>
-              </div>
+        <div className="col-md-3">
+          <div className="dashboard-summary-card">
+            <div className="dashboard-summary-icon bg-success">
+              <TrendingUp size={22} />
+            </div>
+            <div>
+              <h6>Ingresos</h6>
+              <h4>₡{totalIngresos.toLocaleString()}</h4>
             </div>
           </div>
         </div>
 
-        <div className="col-12 col-sm-6 col-xl-3">
-          <div className="card dashboard-summary-card h-100 border-0 shadow-sm">
-            <div className="card-body d-flex align-items-center">
-              <div className="dashboard-summary-icon me-3 bg-danger-subtle text-danger">
-                <TrendingDown size={24} />
-              </div>
-              <div>
-                <p className="text-muted mb-1 small">Gastos del Mes</p>
-                <h5 className="mb-0 fw-bold">
-                  {formatoMoneda(resumen.gastosMes)}
-                </h5>
-              </div>
+        <div className="col-md-3">
+          <div className="dashboard-summary-card">
+            <div className="dashboard-summary-icon bg-danger">
+              <TrendingDown size={22} />
+            </div>
+            <div>
+              <h6>Gastos</h6>
+              <h4>₡{totalGastos.toLocaleString()}</h4>
             </div>
           </div>
         </div>
 
-        <div className="col-12 col-sm-6 col-xl-3">
-          <div className="card dashboard-summary-card h-100 border-0 shadow-sm">
-            <div className="card-body d-flex align-items-center">
-              <div className="dashboard-summary-icon me-3 bg-warning-subtle text-warning">
-                <CalendarClock size={24} />
-              </div>
-              <div>
-                <p className="text-muted mb-1 small">Suscripciones Activas</p>
-                <h5 className="mb-0 fw-bold">
-                  {resumen.suscripcionesActivas}
-                </h5>
-              </div>
+        <div className="col-md-3">
+          <div className="dashboard-summary-card">
+            <div className="dashboard-summary-icon bg-warning">
+              <CalendarCheck size={22} />
+            </div>
+            <div>
+              <h6>Suscripciones Activas</h6>
+              <h4>{suscripcionesActivas}</h4>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Banner de "Lo que más gastaste este mes" */}
-      <div className="card border-0 shadow-sm mb-3">
-        <div className="card-body py-3">
-          <h5 className="card-title mb-0">Lo que más gastaste este mes</h5>
-          <p className="text-muted small mb-0">
-            Un vistazo rápido a tus principales categorías de gasto.
-          </p>
-        </div>
-      </div>
-
-      {/* Gráficos (parte roja de tu imagen) */}
-      <div className="row g-3">
-        {/* PieChart: Gastos por categoría */}
-        <div className="col-12 col-lg-6">
-          <div className="card h-100 border-0 shadow-sm">
-            <div className="card-body">
-              <h5 className="card-title mb-3">Gastos por Categoría</h5>
-              {loading ? (
-                <p className="text-muted">Cargando datos...</p>
-              ) : gastosPorCategoria.length === 0 ? (
-                <p className="text-muted">
-                  No hay datos de gastos para este mes.
-                </p>
-              ) : (
-                <div style={{ width: "100%", height: 280 }}>
-                  <ResponsiveContainer>
-                    <PieChart>
-                      <Pie
-                        dataKey="value"
-                        data={gastosPorCategoria}
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={90}
-                        label={({ name, percent }) =>
-                          `${name} (${(percent * 100).toFixed(0)}%)`
-                        }
-                      >
-                        {gastosPorCategoria.map((entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={COLORS[index % COLORS.length]}
-                          />
-                        ))}
-                      </Pie>
-                      <Tooltip formatter={(value) => formatoMoneda(value)} />
-                      <Legend />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-            </div>
+      {/* Gráficas */}
+      <div className="row g-4">
+        <div className="col-md-6">
+          <div className="card shadow-sm p-3">
+            <h6>Gastos por Categoría</h6>
+            {gastosPorCategoria.length === 0 ? (
+              <p className="text-muted">Sin gastos en este periodo.</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie data={gastosPorCategoria} dataKey="value" nameKey="name">
+                    {gastosPorCategoria.map((_, i) => (
+                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
-        {/* BarChart: Comparación por categoría */}
-        <div className="col-12 col-lg-6">
-          <div className="card h-100 border-0 shadow-sm">
-            <div className="card-body">
-              <h5 className="card-title mb-3">
-                Comparación por Categoría
-              </h5>
-              {loading ? (
-                <p className="text-muted">Cargando datos...</p>
-              ) : comparacionPorCategoria.length === 0 ? (
-                <p className="text-muted">
-                  No hay suficientes datos de ingresos y gastos para
-                  comparar.
-                </p>
-              ) : (
-                <div style={{ width: "100%", height: 280 }}>
-                  <ResponsiveContainer>
-                    <BarChart data={comparacionPorCategoria}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="categoria" tick={{ fontSize: 12 }} />
-                      <YAxis />
-                      <Tooltip formatter={(value) => formatoMoneda(value)} />
-                      <Legend />
-                      <Bar dataKey="gastos" name="Gastos" />
-                      <Bar dataKey="ingresos" name="Ingresos" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-            </div>
+        <div className="col-md-6">
+          <div className="card shadow-sm p-3">
+            <h6>Comparación por Categoría</h6>
+            {comparacionCategorias.length === 0 ? (
+              <p className="text-muted">Sin datos suficientes.</p>
+            ) : (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={comparacionCategorias}>
+                  <XAxis dataKey="categoria" />
+                  <YAxis />
+                  <Tooltip />
+                  <Bar dataKey="ingresos" fill="#198754" />
+                  <Bar dataKey="gastos" fill="#dc3545" />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
       </div>

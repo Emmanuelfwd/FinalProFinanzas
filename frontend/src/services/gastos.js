@@ -1,21 +1,20 @@
+import api from "./api";
 
-import API from "./api";
-
-// Obtiene los gastos del usuario autenticado
 export const obtenerGastos = async () => {
-  const userId = localStorage.getItem("userId");
-  return API.get(`/gastos/?usuario=${userId}`);
+  const response = await api.get("gastos/");
+  return response.data;
 };
 
-// Crea un gasto nuevo (el backend asigna id_usuario desde el JWT)
 export const crearGasto = async (data) => {
-  return API.post("/gastos/", data);
+  const response = await api.post("gastos/", data);
+  return response.data;
 };
 
 export const eliminarGasto = async (id) => {
-  return API.delete(`/gastos/${id}/`);
+  await api.delete(`gastos/${id}/`);
 };
 
 export const actualizarGasto = async (id, data) => {
-  return API.put(`/gastos/${id}/`, data);
+  const response = await api.put(`gastos/${id}/`, data);
+  return response.data;
 };
