@@ -103,6 +103,14 @@ class Suscripcion(models.Model):
     nombre_servicio = models.CharField(max_length=100)
     monto_mensual = models.DecimalField(max_digits=12, decimal_places=2)
     fecha_inicio = models.DateField()
+
+    # ✅ NUEVO: moneda (igual patrón que Gasto / Ingreso)
+    id_moneda = models.ForeignKey(
+        TipoCambio,
+        on_delete=models.SET_NULL,
+        null=True
+    )
+
     estado = models.BooleanField(default=True)
 
     def __str__(self):

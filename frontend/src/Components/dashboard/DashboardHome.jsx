@@ -1,188 +1,222 @@
-import { useEffect, useMemo, useState } from "react";
-import api from "../../services/api";
-import { Wallet, TrendingUp, TrendingDown, CalendarCheck } from "lucide-react";
+// frontend/src/Components/dashboard/DashboardHome.jsx
+import React, { useEffect, useMemo, useState } from "react";
+import API from "../../services/api";
 import {
+  ResponsiveContainer,
   PieChart,
   Pie,
   Cell,
+  Tooltip,
+  Legend,
   BarChart,
   Bar,
   XAxis,
   YAxis,
-  Tooltip,
-  ResponsiveContainer,
+  CartesianGrid,
 } from "recharts";
+import { Wallet, TrendingUp, TrendingDown, CalendarClock } from "lucide-react";
 
-/* ===============================
-   TIPOS DE CAMBIO (DEFAULT)
-   Puedes ajustarlos cuando quieras
-================================ */
-const TIPOS_CAMBIO_DEFAULT = {
-  USD: 530,
-  EUR: 580,
-};
-
-const COLORS = ["#0d6efd", "#dc3545", "#198754", "#ffc107", "#6f42c1"];
+const COLORS = ["#0d6efd", "#dc3545", "#198754", "#ffc107", "#6f42c1", "#20c997"];
 
 const DashboardHome = () => {
   const [gastos, setGastos] = useState([]);
   const [ingresos, setIngresos] = useState([]);
   const [suscripciones, setSuscripciones] = useState([]);
+  const [categorias, setCategorias] = useState([]);
+  const [monedas, setMonedas] = useState([]);
+  const [loading, setLoading] = useState(true);
 
+  // Selector de periodo (por defecto: mes/año actual)
   const hoy = new Date();
-  const [mesSeleccionado, setMesSeleccionado] = useState(hoy.getMonth());
+  const [mesSeleccionado, setMesSeleccionado] = useState(hoy.getMonth()); // 0-11
   const [anioSeleccionado, setAnioSeleccionado] = useState(hoy.getFullYear());
 
-  /* ===============================
-     CARGA DE DATOS (SIN TIPO-CAMBIO)
-  =============================== */
+  const meses = [
+    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+  ];
+
+  /* =========================================================
+     Fetch principal (usa tu API real: ids en FK + tipocambio)
+  ========================================================= */
   useEffect(() => {
-    const cargarTodo = async () => {
+    const cargarDashboard = async () => {
+      setLoading(true);
       try {
-        const [gastosRes, ingresosRes, susRes] = await Promise.all([
-          api.get("gastos/"),
-          api.get("ingresos/"),
-          api.get("suscripciones/"),
+        const userId = localStorage.getItem("userId");
+
+        const [gastosRes, ingresosRes, susRes, catRes, monRes] = await Promise.all([
+          API.get(`gastos/?usuario=${userId}`),
+          API.get(`ingresos/?usuario=${userId}`),
+          API.get(`suscripciones/?usuario=${userId}`),
+          API.get("categorias/"),
+          API.get("tipocambio/"),
         ]);
 
         setGastos(Array.isArray(gastosRes.data) ? gastosRes.data : []);
-
-        const ingresosData =
-          ingresosRes.data?.results ??
-          ingresosRes.data?.ingresos ??
-          ingresosRes.data ??
-          [];
-        setIngresos(Array.isArray(ingresosData) ? ingresosData : []);
-
+        setIngresos(Array.isArray(ingresosRes.data) ? ingresosRes.data : []);
         setSuscripciones(Array.isArray(susRes.data) ? susRes.data : []);
-      } catch (err) {
-        console.error("Error cargando dashboard:", err);
+        setCategorias(Array.isArray(catRes.data) ? catRes.data : []);
+        setMonedas(Array.isArray(monRes.data) ? monRes.data : []);
+      } catch (error) {
+        console.error("Error cargando dashboard:", error);
+        setGastos([]);
+        setIngresos([]);
+        setSuscripciones([]);
+        setCategorias([]);
+        setMonedas([]);
+      } finally {
+        setLoading(false);
       }
     };
 
-    cargarTodo();
+    cargarDashboard();
   }, []);
 
-  /* ===============================
-     HELPERS FINANCIEROS
-  =============================== */
+  /* =========================================================
+     Helpers: maps y conversión a CRC
+  ========================================================= */
+  const categoriaNombrePorId = useMemo(() => {
+    const map = {};
+    categorias.forEach((c) => {
+      map[c.id_categoria] = c.nombre_categoria;
+    });
+    return map;
+  }, [categorias]);
 
-  const convertirAColones = (monto, moneda) => {
-    const m = Number(monto);
+  const monedaPorId = useMemo(() => {
+    // id_moneda -> { nombre_moneda, tasa_cambio }
+    const map = {};
+    monedas.forEach((m) => {
+      map[m.id_moneda] = {
+        nombre: m.nombre_moneda,
+        tasa: parseFloat(m.tasa_cambio),
+      };
+    });
+    return map;
+  }, [monedas]);
+
+  const esDelPeriodo = (fechaStr) => {
+    if (!fechaStr) return false;
+    // Normalizamos YYYY-MM-DD
+    const f = new Date(String(fechaStr).slice(0, 10) + "T00:00:00");
+    if (Number.isNaN(f.getTime())) return false;
+    return f.getMonth() === mesSeleccionado && f.getFullYear() === anioSeleccionado;
+  };
+
+  const aCRC = (monto, idMoneda) => {
+    const m = Number(monto || 0);
     if (Number.isNaN(m)) return 0;
-    if (!moneda || moneda === "CRC") return m;
 
-    const tipo = TIPOS_CAMBIO_DEFAULT[moneda];
-    return tipo ? m * tipo : m;
+    // Si no hay moneda o no hay tasa, asumimos 1 (útil si CRC está en BD con tasa 1)
+    const info = monedaPorId[idMoneda];
+    const tasa = info?.tasa;
+
+    if (!tasa || Number.isNaN(tasa)) return m;
+    return m * tasa;
   };
 
-  const perteneceAlPeriodo = (fecha) => {
-    if (!fecha) return false;
-    const f = new Date(String(fecha).slice(0, 10) + "T00:00:00");
-    return (
-      f.getMonth() === mesSeleccionado &&
-      f.getFullYear() === anioSeleccionado
-    );
+  const formatearCRC = (valor) => {
+    const numero = Number(valor || 0);
+    if (Number.isNaN(numero)) return "₡0";
+    return numero.toLocaleString("es-CR", {
+      style: "currency",
+      currency: "CRC",
+      minimumFractionDigits: 0,
+    });
   };
 
-  const meses = [
-    "Enero","Febrero","Marzo","Abril","Mayo","Junio",
-    "Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre",
-  ];
+  /* =========================================================
+     Filtrados por periodo (mes/año) + KPIs con conversión
+  ========================================================= */
+  const gastosMes = useMemo(() => gastos.filter((g) => esDelPeriodo(g.fecha)), [gastos, mesSeleccionado, anioSeleccionado]);
+  const ingresosMes = useMemo(() => ingresos.filter((i) => esDelPeriodo(i.fecha)), [ingresos, mesSeleccionado, anioSeleccionado]);
 
-  /* ===============================
-     DATOS FILTRADOS
-  =============================== */
-
-  const gastosPeriodo = gastos.filter((g) => perteneceAlPeriodo(g.fecha));
-  const ingresosPeriodo = ingresos.filter((i) => perteneceAlPeriodo(i.fecha));
-
-  /* ===============================
-     KPIs
-  =============================== */
-
-  const totalGastos = useMemo(
-    () =>
-      gastosPeriodo.reduce(
-        (acc, g) => acc + convertirAColones(g.monto, g.moneda),
-        0
-      ),
-    [gastosPeriodo]
+  const totalGastosMesCRC = useMemo(
+    () => gastosMes.reduce((acc, g) => acc + aCRC(g.monto, g.id_moneda), 0),
+    [gastosMes, monedaPorId]
   );
 
-  const totalIngresos = useMemo(
-    () =>
-      ingresosPeriodo.reduce(
-        (acc, i) => acc + convertirAColones(i.monto, i.moneda),
-        0
-      ),
-    [ingresosPeriodo]
+  const totalIngresosMesCRC = useMemo(
+    () => ingresosMes.reduce((acc, i) => acc + aCRC(i.monto, i.id_moneda), 0),
+    [ingresosMes, monedaPorId]
   );
 
-  const saldoActual = totalIngresos - totalGastos;
+  const saldoMesCRC = totalIngresosMesCRC - totalGastosMesCRC;
 
-  const suscripcionesActivas = suscripciones.filter(
-    (s) => s.estado === true
-  ).length;
+  const suscripcionesActivas = useMemo(() => {
+    // Tu modelo tiene boolean "estado" (según lo que ya vimos)
+    return suscripciones.filter((s) => s.estado === true).length;
+  }, [suscripciones]);
 
-  /* ===============================
-     GRÁFICAS
-  =============================== */
+  /* =========================================================
+     Gráfica: Gastos por categoría (Pie)
+  ========================================================= */
+  const dataGastosPorCategoria = useMemo(() => {
+    if (!gastosMes.length) return [];
 
-  const gastosPorCategoria = useMemo(() => {
     const map = {};
-    gastosPeriodo.forEach((g) => {
-      const cat = g.categoria_nombre || "Sin categoría";
-      map[cat] =
-        (map[cat] || 0) + convertirAColones(g.monto, g.moneda);
+    gastosMes.forEach((g) => {
+      const idCat = g.id_categoria;
+      const nombre = categoriaNombrePorId[idCat] || "Sin categoría";
+      map[nombre] = (map[nombre] || 0) + aCRC(g.monto, g.id_moneda);
     });
-    return Object.entries(map).map(([name, value]) => ({ name, value }));
-  }, [gastosPeriodo]);
 
-  const comparacionCategorias = useMemo(() => {
+    return Object.entries(map).map(([name, value]) => ({
+      name,
+      value: Math.round(value),
+    }));
+  }, [gastosMes, categoriaNombrePorId, monedaPorId]);
+
+  /* =========================================================
+     Gráfica: Comparación por categoría (Bar)
+  ========================================================= */
+  const dataComparacion = useMemo(() => {
     const map = {};
 
-    gastosPeriodo.forEach((g) => {
-      const cat = g.categoria_nombre || "Sin categoría";
-      map[cat] = map[cat] || { categoria: cat, gastos: 0, ingresos: 0 };
-      map[cat].gastos += convertirAColones(g.monto, g.moneda);
+    gastosMes.forEach((g) => {
+      const nombre = categoriaNombrePorId[g.id_categoria] || "Sin categoría";
+      map[nombre] = map[nombre] || { categoria: nombre, gastos: 0, ingresos: 0 };
+      map[nombre].gastos += aCRC(g.monto, g.id_moneda);
     });
 
-    ingresosPeriodo.forEach((i) => {
-      const cat = i.categoria_nombre || "Sin categoría";
-      map[cat] = map[cat] || { categoria: cat, gastos: 0, ingresos: 0 };
-      map[cat].ingresos += convertirAColones(i.monto, i.moneda);
+    ingresosMes.forEach((i) => {
+      const nombre = categoriaNombrePorId[i.id_categoria] || "Sin categoría";
+      map[nombre] = map[nombre] || { categoria: nombre, gastos: 0, ingresos: 0 };
+      map[nombre].ingresos += aCRC(i.monto, i.id_moneda);
     });
 
-    return Object.values(map);
-  }, [gastosPeriodo, ingresosPeriodo]);
-
-  /* ===============================
-     UI
-  =============================== */
+    return Object.values(map).map((x) => ({
+      ...x,
+      gastos: Math.round(x.gastos),
+      ingresos: Math.round(x.ingresos),
+    }));
+  }, [gastosMes, ingresosMes, categoriaNombrePorId, monedaPorId]);
 
   return (
     <div className="p-3">
-      <h3>Inicio del Dashboard</h3>
-      <p>Resumen financiero del mes seleccionado.</p>
+      <h2>Inicio del Dashboard</h2>
+      <p>Aquí tienes un resumen de tus finanzas del mes seleccionado.</p>
 
-      {/* Selector de periodo */}
-      <div className="d-flex gap-2 mb-3 align-items-end">
+      {/* Selector de mes/año */}
+      <div className="d-flex flex-wrap gap-3 align-items-end mb-4">
         <div>
-          <label className="form-label">Mes</label>
+          <label className="form-label mb-1">Mes</label>
           <select
             className="form-select"
             value={mesSeleccionado}
             onChange={(e) => setMesSeleccionado(Number(e.target.value))}
           >
-            {meses.map((m, i) => (
-              <option key={m} value={i}>{m}</option>
+            {meses.map((m, idx) => (
+              <option key={m} value={idx}>
+                {m}
+              </option>
             ))}
           </select>
         </div>
 
         <div>
-          <label className="form-label">Año</label>
+          <label className="form-label mb-1">Año</label>
           <input
             type="number"
             className="form-control"
@@ -190,9 +224,13 @@ const DashboardHome = () => {
             onChange={(e) => setAnioSeleccionado(Number(e.target.value))}
           />
         </div>
+
+        <div className="ms-auto text-muted" style={{ paddingTop: 28 }}>
+          Mostrando: <strong>{meses[mesSeleccionado]} {anioSeleccionado}</strong>
+        </div>
       </div>
 
-      {/* Cards */}
+      {/* Cards (mantén tus clases existentes) */}
       <div className="row g-3 mb-4">
         <div className="col-md-3">
           <div className="dashboard-summary-card">
@@ -200,8 +238,8 @@ const DashboardHome = () => {
               <Wallet size={22} />
             </div>
             <div>
-              <h6>Saldo</h6>
-              <h4>₡{saldoActual.toLocaleString()}</h4>
+              <div><strong>Saldo Actual</strong></div>
+              <div style={{ fontSize: 22 }}>{loading ? "..." : formatearCRC(saldoMesCRC)}</div>
             </div>
           </div>
         </div>
@@ -212,8 +250,8 @@ const DashboardHome = () => {
               <TrendingUp size={22} />
             </div>
             <div>
-              <h6>Ingresos</h6>
-              <h4>₡{totalIngresos.toLocaleString()}</h4>
+              <div><strong>Ingresos del Mes</strong></div>
+              <div style={{ fontSize: 22 }}>{loading ? "..." : formatearCRC(totalIngresosMesCRC)}</div>
             </div>
           </div>
         </div>
@@ -224,8 +262,8 @@ const DashboardHome = () => {
               <TrendingDown size={22} />
             </div>
             <div>
-              <h6>Gastos</h6>
-              <h4>₡{totalGastos.toLocaleString()}</h4>
+              <div><strong>Gastos del Mes</strong></div>
+              <div style={{ fontSize: 22 }}>{loading ? "..." : formatearCRC(totalGastosMesCRC)}</div>
             </div>
           </div>
         </div>
@@ -233,53 +271,74 @@ const DashboardHome = () => {
         <div className="col-md-3">
           <div className="dashboard-summary-card">
             <div className="dashboard-summary-icon bg-warning">
-              <CalendarCheck size={22} />
+              <CalendarClock size={22} />
             </div>
             <div>
-              <h6>Suscripciones Activas</h6>
-              <h4>{suscripcionesActivas}</h4>
+              <div><strong>Suscripciones Activas</strong></div>
+              <div style={{ fontSize: 22 }}>{loading ? "..." : suscripcionesActivas}</div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Gráficas */}
+      {/* Sección de gráficas */}
       <div className="row g-4">
         <div className="col-md-6">
           <div className="card shadow-sm p-3">
-            <h6>Gastos por Categoría</h6>
-            {gastosPorCategoria.length === 0 ? (
-              <p className="text-muted">Sin gastos en este periodo.</p>
+            <h5 className="mb-1">Gastos por Categoría</h5>
+            <div className="text-muted mb-3">Conversión aplicada a CRC según TipoCambio.</div>
+
+            {loading ? (
+              <div className="text-muted">Cargando...</div>
+            ) : dataGastosPorCategoria.length === 0 ? (
+              <div className="text-muted">No hay datos de gastos para este periodo.</div>
             ) : (
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie data={gastosPorCategoria} dataKey="value" nameKey="name">
-                    {gastosPorCategoria.map((_, i) => (
-                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
+              <div style={{ width: "100%", height: 320 }}>
+                <ResponsiveContainer>
+                  <PieChart>
+                    <Pie
+                      data={dataGastosPorCategoria}
+                      dataKey="value"
+                      nameKey="name"
+                      outerRadius={110}
+                      label
+                    >
+                      {dataGastosPorCategoria.map((_, idx) => (
+                        <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
             )}
           </div>
         </div>
 
         <div className="col-md-6">
           <div className="card shadow-sm p-3">
-            <h6>Comparación por Categoría</h6>
-            {comparacionCategorias.length === 0 ? (
-              <p className="text-muted">Sin datos suficientes.</p>
+            <h5 className="mb-1">Comparación por Categoría</h5>
+            <div className="text-muted mb-3">Ingresos vs Gastos (CRC) en el periodo.</div>
+
+            {loading ? (
+              <div className="text-muted">Cargando...</div>
+            ) : dataComparacion.length === 0 ? (
+              <div className="text-muted">No hay suficientes datos para comparar en este periodo.</div>
             ) : (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={comparacionCategorias}>
-                  <XAxis dataKey="categoria" />
-                  <YAxis />
-                  <Tooltip />
-                  <Bar dataKey="ingresos" fill="#198754" />
-                  <Bar dataKey="gastos" fill="#dc3545" />
-                </BarChart>
-              </ResponsiveContainer>
+              <div style={{ width: "100%", height: 320 }}>
+                <ResponsiveContainer>
+                  <BarChart data={dataComparacion}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="categoria" />
+                    <YAxis />
+                    <Tooltip />
+                    <Legend />
+                    <Bar dataKey="ingresos" fill="#198754" />
+                    <Bar dataKey="gastos" fill="#dc3545" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             )}
           </div>
         </div>

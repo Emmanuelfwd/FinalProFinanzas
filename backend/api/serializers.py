@@ -1,21 +1,21 @@
 from rest_framework import serializers
 from .models import AuthUsuario, Categoria, TipoCambio, Gasto, Ingreso, Suscripcion
 
-# USUARIO 
+# USUARIO
 class AuthUsuarioSerializer(serializers.ModelSerializer):
     class Meta:
         model = AuthUsuario
         fields = '__all__'
 
 
-#  CATEGORIA 
+# CATEGORIA
 class CategoriaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Categoria
         fields = '__all__'
 
 
-# TIPO CAMBIO 
+# TIPO CAMBIO
 class TipoCambioSerializer(serializers.ModelSerializer):
     class Meta:
         model = TipoCambio
@@ -38,8 +38,13 @@ class IngresoSerializer(serializers.ModelSerializer):
         read_only_fields = ['id_usuario']   # 👈 IMPORTANTE
 
 
-# SUSCRIPCIONES 
+# SUSCRIPCIONES
 class SuscripcionSerializer(serializers.ModelSerializer):
+    moneda_nombre = serializers.CharField(
+        source="id_moneda.nombre_moneda",
+        read_only=True
+    )
+
     class Meta:
         model = Suscripcion
         fields = '__all__'
