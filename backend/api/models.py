@@ -23,10 +23,10 @@ class Categoria(models.Model):
     tipo = models.CharField(
         max_length=50,
         choices=[
-            ('GASTO', 'Gasto'),
-            ('INGRESO', 'Ingreso'),
-            ('AMBOS', 'Ambos')
-        ]
+            ("GASTO", "Gasto"),
+            ("INGRESO", "Ingreso"),
+            ("AMBOS", "Ambos"),
+        ],
     )
 
     def __str__(self):
@@ -48,21 +48,24 @@ class Gasto(models.Model):
     id_usuario = models.ForeignKey(
         AuthUsuario,
         on_delete=models.CASCADE,
-        related_name="gastos"
+        related_name="gastos",
     )
     id_categoria = models.ForeignKey(
         Categoria,
         on_delete=models.SET_NULL,
-        null=True
+        null=True,
     )
     id_moneda = models.ForeignKey(
         TipoCambio,
         on_delete=models.SET_NULL,
-        null=True
+        null=True,
     )
     monto = models.DecimalField(max_digits=12, decimal_places=2)
     fecha = models.DateField()
     descripcion = models.TextField(blank=True, null=True)
+
+    # ✅ SOFT DELETE
+    eliminado = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.descripcion or 'Gasto'} - {self.monto}"
@@ -73,21 +76,24 @@ class Ingreso(models.Model):
     id_usuario = models.ForeignKey(
         AuthUsuario,
         on_delete=models.CASCADE,
-        related_name="ingresos"
+        related_name="ingresos",
     )
     id_categoria = models.ForeignKey(
         Categoria,
         on_delete=models.SET_NULL,
-        null=True
+        null=True,
     )
     id_moneda = models.ForeignKey(
         TipoCambio,
         on_delete=models.SET_NULL,
-        null=True
+        null=True,
     )
     monto = models.DecimalField(max_digits=12, decimal_places=2)
     fecha = models.DateField()
     descripcion = models.TextField(blank=True, null=True)
+
+    # ✅ SOFT DELETE
+    eliminado = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.descripcion or 'Ingreso'} - {self.monto}"
@@ -98,20 +104,23 @@ class Suscripcion(models.Model):
     id_usuario = models.ForeignKey(
         AuthUsuario,
         on_delete=models.CASCADE,
-        related_name="suscripciones"
+        related_name="suscripciones",
     )
     nombre_servicio = models.CharField(max_length=100)
     monto_mensual = models.DecimalField(max_digits=12, decimal_places=2)
     fecha_inicio = models.DateField()
 
-    # ✅ NUEVO: moneda (igual patrón que Gasto / Ingreso)
+    # ✅ moneda (igual patrón que Gasto / Ingreso)
     id_moneda = models.ForeignKey(
         TipoCambio,
         on_delete=models.SET_NULL,
-        null=True
+        null=True,
     )
 
     estado = models.BooleanField(default=True)
+
+    # ✅ SOFT DELETE
+    eliminado = models.BooleanField(default=False)
 
     def __str__(self):
         return self.nombre_servicio

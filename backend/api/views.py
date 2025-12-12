@@ -90,70 +90,6 @@ class LoginView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # Buscar usuario por correo
-        try:
-            usuario = AuthUsuario.objects.get(correo=correo)
-        except AuthUsuario.DoesNotExist:
-            return Response({"detail": "Credenciales inválidas."},
-                            status=status.HTTP_401_UNAUTHORIZED)
-
-        # Obtener contraseña guardada
-        contrasenha_guardada = usuario.contrasenha_hash
-
-        # Normalizar
-        if contrasenha_guardada is None:
-            contrasenha_guardada = ""
-
-        # Validación:
-        # 1. Si está hasheada -> check_password
-        # 2. Si no -> comparar texto plano
-        password_valida = False
-        
-        try:
-            if check_password(password, contrasenha_guardada):
-                password_valida = True
-        except Exception:
-            pass
-
-        if not password_valida and contrasenha_guardada == password:
-            password_valida = True
-
-        if not password_valida:
-            return Response({"detail": "Credenciales inválidas."},
-                            status=status.HTTP_401_UNAUTHORIZED)
-
-        # GENERAR JWT MANUALMENTE (independiente de Django User)
-        payload = {
-            "id_usuario": usuario.id_usuario,
-            "correo": usuario.correo,
-            "exp": datetime.datetime.utcnow() + datetime.timedelta(hours=12),
-            "iat": datetime.datetime.utcnow(),
-        }
-
-        token = jwt.encode(payload, settings.SECRET_KEY, algorithm="HS256")
-
-        return Response({
-            "token": token,
-            "usuario": {
-                "id_usuario": usuario.id_usuario,
-                "nombre": usuario.nombre,
-                "correo": usuario.correo,
-                "fecha_registro": usuario.fecha_registro
-            }
-        })
-
-    permission_classes = [AllowAny]
-
-    def post(self, request):
-        correo = request.data.get("correo")
-        password = request.data.get("password")
-
-        if not correo or not password:
-            return Response(
-                {"detail": "Correo y contraseña requeridos."},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-
         try:
             usuario = AuthUsuario.objects.get(correo=correo)
         except AuthUsuario.DoesNotExist:
@@ -243,7 +179,11 @@ class GastoView(ListCreateAPIView):
     serializer_class = GastoSerializer
 
     def get_queryset(self):
-        return Gasto.objects.filter(id_usuario=self.request.user.id_usuario)
+        incluir_eliminados = self.request.query_params.get("incluir_eliminados")
+        qs = Gasto.objects.filter(id_usuario=self.request.user.id_usuario)
+        if incluir_eliminados == "1":
+            return qs
+        return qs.filter(eliminado=False)
 
     def perform_create(self, serializer):
         usuario = get_object_or_404(AuthUsuario, id_usuario=self.request.user.id_usuario)
@@ -257,6 +197,32 @@ class GastoDetailView(RetrieveUpdateDestroyAPIView):
     def get_queryset(self):
         return Gasto.objects.filter(id_usuario=self.request.user.id_usuario)
 
+    # ✅ Soft delete al hacer DELETE normal
+    def delete(self, request, *args, **kwargs):
+        gasto = self.get_object()
+        gasto.eliminado = True
+        gasto.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class GastoRestoreView(APIView):
+    authentication_classes = [JWTAuthentication]
+
+    def patch(self, request, pk):
+        gasto = get_object_or_404(Gasto, pk=pk, id_usuario=request.user.id_usuario)
+        gasto.eliminado = False
+        gasto.save()
+        return Response(GastoSerializer(gasto).data, status=status.HTTP_200_OK)
+
+
+class GastoForceDeleteView(APIView):
+    authentication_classes = [JWTAuthentication]
+
+    def delete(self, request, pk):
+        gasto = get_object_or_404(Gasto, pk=pk, id_usuario=request.user.id_usuario)
+        gasto.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 ###############
 # INGRESOS
@@ -267,7 +233,11 @@ class IngresoView(ListCreateAPIView):
     serializer_class = IngresoSerializer
 
     def get_queryset(self):
-        return Ingreso.objects.filter(id_usuario=self.request.user.id_usuario)
+        incluir_eliminados = self.request.query_params.get("incluir_eliminados")
+        qs = Ingreso.objects.filter(id_usuario=self.request.user.id_usuario)
+        if incluir_eliminados == "1":
+            return qs
+        return qs.filter(eliminado=False)
 
     def perform_create(self, serializer):
         usuario = get_object_or_404(AuthUsuario, id_usuario=self.request.user.id_usuario)
@@ -281,6 +251,32 @@ class IngresoDetailView(RetrieveUpdateDestroyAPIView):
     def get_queryset(self):
         return Ingreso.objects.filter(id_usuario=self.request.user.id_usuario)
 
+    # ✅ Soft delete al hacer DELETE normal
+    def delete(self, request, *args, **kwargs):
+        ingreso = self.get_object()
+        ingreso.eliminado = True
+        ingreso.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class IngresoRestoreView(APIView):
+    authentication_classes = [JWTAuthentication]
+
+    def patch(self, request, pk):
+        ingreso = get_object_or_404(Ingreso, pk=pk, id_usuario=request.user.id_usuario)
+        ingreso.eliminado = False
+        ingreso.save()
+        return Response(IngresoSerializer(ingreso).data, status=status.HTTP_200_OK)
+
+
+class IngresoForceDeleteView(APIView):
+    authentication_classes = [JWTAuthentication]
+
+    def delete(self, request, pk):
+        ingreso = get_object_or_404(Ingreso, pk=pk, id_usuario=request.user.id_usuario)
+        ingreso.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
 
 ###############
 # SUSCRIPCIONES
@@ -291,7 +287,11 @@ class SuscripcionView(ListCreateAPIView):
     serializer_class = SuscripcionSerializer
 
     def get_queryset(self):
-        return Suscripcion.objects.filter(id_usuario=self.request.user.id_usuario)
+        incluir_eliminados = self.request.query_params.get("incluir_eliminados")
+        qs = Suscripcion.objects.filter(id_usuario=self.request.user.id_usuario)
+        if incluir_eliminados == "1":
+            return qs
+        return qs.filter(eliminado=False)
 
     def perform_create(self, serializer):
         usuario = get_object_or_404(AuthUsuario, id_usuario=self.request.user.id_usuario)
@@ -304,3 +304,29 @@ class SuscripcionDetailView(RetrieveUpdateDestroyAPIView):
 
     def get_queryset(self):
         return Suscripcion.objects.filter(id_usuario=self.request.user.id_usuario)
+
+    # ✅ Soft delete al hacer DELETE normal
+    def delete(self, request, *args, **kwargs):
+        sus = self.get_object()
+        sus.eliminado = True
+        sus.save()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class SuscripcionRestoreView(APIView):
+    authentication_classes = [JWTAuthentication]
+
+    def patch(self, request, pk):
+        sus = get_object_or_404(Suscripcion, pk=pk, id_usuario=request.user.id_usuario)
+        sus.eliminado = False
+        sus.save()
+        return Response(SuscripcionSerializer(sus).data, status=status.HTTP_200_OK)
+
+
+class SuscripcionForceDeleteView(APIView):
+    authentication_classes = [JWTAuthentication]
+
+    def delete(self, request, pk):
+        sus = get_object_or_404(Suscripcion, pk=pk, id_usuario=request.user.id_usuario)
+        sus.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
