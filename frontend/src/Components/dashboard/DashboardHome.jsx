@@ -14,9 +14,23 @@ import {
   YAxis,
   CartesianGrid,
 } from "recharts";
-import { Wallet, TrendingUp, TrendingDown, CalendarClock } from "lucide-react";
+import {
+  Wallet,
+  TrendingUp,
+  TrendingDown,
+  CalendarClock,
+  FileText,
+} from "lucide-react";
+import { exportHistorialPDF } from "../../services/exportHistorialPDF";
 
-const COLORS = ["#0d6efd", "#dc3545", "#198754", "#ffc107", "#6f42c1", "#20c997"];
+const COLORS = [
+  "#0d6efd",
+  "#dc3545",
+  "#198754",
+  "#ffc107",
+  "#6f42c1",
+  "#20c997",
+];
 
 const DashboardHome = () => {
   const [gastos, setGastos] = useState([]);
@@ -26,9 +40,9 @@ const DashboardHome = () => {
   const [monedas, setMonedas] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Selector de periodo (por defecto: mes/año actual)
+  // Selector de periodo
   const hoy = new Date();
-  const [mesSeleccionado, setMesSeleccionado] = useState(hoy.getMonth()); // 0-11
+  const [mesSeleccionado, setMesSeleccionado] = useState(hoy.getMonth());
   const [anioSeleccionado, setAnioSeleccionado] = useState(hoy.getFullYear());
 
   const meses = [
@@ -37,7 +51,7 @@ const DashboardHome = () => {
   ];
 
   /* =========================================================
-     Fetch principal (usa tu API real: ids en FK + tipocambio)
+     Fetch principal
   ========================================================= */
   useEffect(() => {
     const cargarDashboard = async () => {
@@ -45,7 +59,13 @@ const DashboardHome = () => {
       try {
         const userId = localStorage.getItem("userId");
 
-        const [gastosRes, ingresosRes, susRes, catRes, monRes] = await Promise.all([
+        const [
+          gastosRes,
+          ingresosRes,
+          susRes,
+          catRes,
+          monRes,
+        ] = await Promise.all([
           API.get(`gastos/?usuario=${userId}`),
           API.get(`ingresos/?usuario=${userId}`),
           API.get(`suscripciones/?usuario=${userId}`),
@@ -74,7 +94,7 @@ const DashboardHome = () => {
   }, []);
 
   /* =========================================================
-     Helpers: maps y conversión a CRC
+     Helpers
   ========================================================= */
   const categoriaNombrePorId = useMemo(() => {
     const map = {};
@@ -85,7 +105,6 @@ const DashboardHome = () => {
   }, [categorias]);
 
   const monedaPorId = useMemo(() => {
-    // id_moneda -> { nombre_moneda, tasa_cambio }
     const map = {};
     monedas.forEach((m) => {
       map[m.id_moneda] = {
@@ -98,25 +117,24 @@ const DashboardHome = () => {
 
   const esDelPeriodo = (fechaStr) => {
     if (!fechaStr) return false;
-    // Normalizamos YYYY-MM-DD
     const f = new Date(String(fechaStr).slice(0, 10) + "T00:00:00");
     if (Number.isNaN(f.getTime())) return false;
-    return f.getMonth() === mesSeleccionado && f.getFullYear() === anioSeleccionado;
+    return (
+      f.getMonth() === mesSeleccionado &&
+      f.getFullYear() === anioSeleccionado
+    );
   };
 
-  const finDeMesSeleccionado = useMemo(() => {
-    // Último día del mes seleccionado: new Date(año, mes+1, 0)
-    return new Date(anioSeleccionado, mesSeleccionado + 1, 0, 23, 59, 59);
-  }, [anioSeleccionado, mesSeleccionado]);
+  const finDeMesSeleccionado = useMemo(
+    () => new Date(anioSeleccionado, mesSeleccionado + 1, 0, 23, 59, 59),
+    [anioSeleccionado, mesSeleccionado]
+  );
 
   const aCRC = (monto, idMoneda) => {
     const m = Number(monto || 0);
     if (Number.isNaN(m)) return 0;
-
-    // Si no hay moneda o no hay tasa, asumimos 1 (útil si CRC está en BD con tasa 1)
     const info = monedaPorId[idMoneda];
     const tasa = info?.tasa;
-
     if (!tasa || Number.isNaN(tasa)) return m;
     return m * tasa;
   };
@@ -132,7 +150,7 @@ const DashboardHome = () => {
   };
 
   /* =========================================================
-     Filtrados por periodo (mes/año) + KPIs con conversión
+     Filtrado por periodo
   ========================================================= */
   const gastosMes = useMemo(
     () => gastos.filter((g) => esDelPeriodo(g.fecha)),
@@ -144,34 +162,30 @@ const DashboardHome = () => {
     [ingresos, mesSeleccionado, anioSeleccionado]
   );
 
-  // Suscripciones que aplican al mes seleccionado:
-  // - activas
-  // - fecha_inicio <= fin de mes seleccionado
   const suscripcionesPeriodo = useMemo(() => {
     return suscripciones.filter((s) => {
       if (s.estado !== true) return false;
       if (!s.fecha_inicio) return true;
-
       const fi = new Date(String(s.fecha_inicio).slice(0, 10) + "T00:00:00");
       if (Number.isNaN(fi.getTime())) return true;
-
       return fi <= finDeMesSeleccionado;
     });
   }, [suscripciones, finDeMesSeleccionado]);
 
-  const totalSuscripcionesMesCRC = useMemo(() => {
-    return suscripcionesPeriodo.reduce(
-      (acc, s) => acc + aCRC(s.monto_mensual, s.id_moneda),
-      0
-    );
-  }, [suscripcionesPeriodo, monedaPorId]);
+  const totalSuscripcionesMesCRC = useMemo(
+    () =>
+      suscripcionesPeriodo.reduce(
+        (acc, s) => acc + aCRC(s.monto_mensual, s.id_moneda),
+        0
+      ),
+    [suscripcionesPeriodo, monedaPorId]
+  );
 
   const totalGastosMesCRC = useMemo(() => {
     const gastosNormales = gastosMes.reduce(
       (acc, g) => acc + aCRC(g.monto, g.id_moneda),
       0
     );
-    // ✅ IMPORTANTE: gastos del mes incluye suscripciones
     return gastosNormales + totalSuscripcionesMesCRC;
   }, [gastosMes, monedaPorId, totalSuscripcionesMesCRC]);
 
@@ -182,73 +196,65 @@ const DashboardHome = () => {
 
   const saldoMesCRC = totalIngresosMesCRC - totalGastosMesCRC;
 
-  const suscripcionesActivas = useMemo(() => {
-    // ✅ Cuenta activas que aplican al mes seleccionado
-    return suscripcionesPeriodo.length;
-  }, [suscripcionesPeriodo]);
+  const suscripcionesActivas = useMemo(
+    () => suscripcionesPeriodo.length,
+    [suscripcionesPeriodo]
+  );
 
   /* =========================================================
-     Gráfica: Gastos por categoría (Pie)
-     ✅ Incluye una categoría "Suscripciones"
+     Exportar PDF (HISTORIAL COMPLETO)
   ========================================================= */
-  const dataGastosPorCategoria = useMemo(() => {
-    const map = {};
+  const exportarPDF = () => {
+    const movimientos = [
+      ...gastos.map((g) => ({
+        tipo: "Gasto",
+        fecha: g.fecha,
+        descripcion:
+          categoriaNombrePorId[g.id_categoria] || "Gasto",
+        monto: formatearCRC(aCRC(g.monto, g.id_moneda)),
+        eliminado: g.eliminado,
+      })),
+      ...ingresos.map((i) => ({
+        tipo: "Ingreso",
+        fecha: i.fecha,
+        descripcion:
+          categoriaNombrePorId[i.id_categoria] || "Ingreso",
+        monto: formatearCRC(aCRC(i.monto, i.id_moneda)),
+        eliminado: i.eliminado,
+      })),
+      ...suscripciones.map((s) => ({
+        tipo: "Suscripción",
+        fecha: s.fecha_inicio,
+        descripcion: s.nombre_servicio,
+        monto: formatearCRC(aCRC(s.monto_mensual, s.id_moneda)),
+        eliminado: s.eliminado,
+      })),
+    ];
 
-    gastosMes.forEach((g) => {
-      const idCat = g.id_categoria;
-      const nombre = categoriaNombrePorId[idCat] || "Sin categoría";
-      map[nombre] = (map[nombre] || 0) + aCRC(g.monto, g.id_moneda);
+    exportHistorialPDF({
+      movimientos,
+      titulo: "Historial completo de movimientos",
+      nombreArchivo: "historial_dashboard.pdf",
     });
-
-    if (totalSuscripcionesMesCRC > 0) {
-      map["Suscripciones"] = (map["Suscripciones"] || 0) + totalSuscripcionesMesCRC;
-    }
-
-    return Object.entries(map).map(([name, value]) => ({
-      name,
-      value: Math.round(value),
-    }));
-  }, [gastosMes, categoriaNombrePorId, monedaPorId, totalSuscripcionesMesCRC]);
+  };
 
   /* =========================================================
-     Gráfica: Comparación por categoría (Bar)
-     ✅ Gastos incluye "Suscripciones"
+     UI
   ========================================================= */
-  const dataComparacion = useMemo(() => {
-    const map = {};
-
-    gastosMes.forEach((g) => {
-      const nombre = categoriaNombrePorId[g.id_categoria] || "Sin categoría";
-      map[nombre] = map[nombre] || { categoria: nombre, gastos: 0, ingresos: 0 };
-      map[nombre].gastos += aCRC(g.monto, g.id_moneda);
-    });
-
-    // ✅ sumar suscripciones a "Suscripciones" como gasto
-    if (totalSuscripcionesMesCRC > 0) {
-      const nombre = "Suscripciones";
-      map[nombre] = map[nombre] || { categoria: nombre, gastos: 0, ingresos: 0 };
-      map[nombre].gastos += totalSuscripcionesMesCRC;
-    }
-
-    ingresosMes.forEach((i) => {
-      const nombre = categoriaNombrePorId[i.id_categoria] || "Sin categoría";
-      map[nombre] = map[nombre] || { categoria: nombre, gastos: 0, ingresos: 0 };
-      map[nombre].ingresos += aCRC(i.monto, i.id_moneda);
-    });
-
-    return Object.values(map).map((x) => ({
-      ...x,
-      gastos: Math.round(x.gastos),
-      ingresos: Math.round(x.ingresos),
-    }));
-  }, [gastosMes, ingresosMes, categoriaNombrePorId, monedaPorId, totalSuscripcionesMesCRC]);
-
   return (
     <div className="p-3">
-      <h2>Inicio del Dashboard</h2>
+      <div className="d-flex justify-content-between align-items-center mb-2">
+        <h2>Inicio del Dashboard</h2>
+
+        <button className="btn btn-outline-dark" onClick={exportarPDF}>
+          <FileText size={16} className="me-1" />
+          Exportar PDF
+        </button>
+      </div>
+
       <p>Aquí tienes un resumen de tus finanzas del mes seleccionado.</p>
 
-      {/* Selector de mes/año */}
+      {/* Selector mes/año */}
       <div className="d-flex flex-wrap gap-3 align-items-end mb-4">
         <div>
           <label className="form-label mb-1">Mes</label>
@@ -258,9 +264,7 @@ const DashboardHome = () => {
             onChange={(e) => setMesSeleccionado(Number(e.target.value))}
           >
             {meses.map((m, idx) => (
-              <option key={m} value={idx}>
-                {m}
-              </option>
+              <option key={m} value={idx}>{m}</option>
             ))}
           </select>
         </div>
@@ -280,7 +284,7 @@ const DashboardHome = () => {
         </div>
       </div>
 
-      {/* Cards (mantén tus clases existentes) */}
+      {/* Cards */}
       <div className="row g-3 mb-4">
         <div className="col-md-3">
           <div className="dashboard-summary-card">
@@ -288,8 +292,10 @@ const DashboardHome = () => {
               <Wallet size={22} />
             </div>
             <div>
-              <div><strong>Saldo Actual</strong></div>
-              <div style={{ fontSize: 22 }}>{loading ? "..." : formatearCRC(saldoMesCRC)}</div>
+              <strong>Saldo Actual</strong>
+              <div style={{ fontSize: 22 }}>
+                {loading ? "..." : formatearCRC(saldoMesCRC)}
+              </div>
             </div>
           </div>
         </div>
@@ -300,8 +306,10 @@ const DashboardHome = () => {
               <TrendingUp size={22} />
             </div>
             <div>
-              <div><strong>Ingresos del Mes</strong></div>
-              <div style={{ fontSize: 22 }}>{loading ? "..." : formatearCRC(totalIngresosMesCRC)}</div>
+              <strong>Ingresos del Mes</strong>
+              <div style={{ fontSize: 22 }}>
+                {loading ? "..." : formatearCRC(totalIngresosMesCRC)}
+              </div>
             </div>
           </div>
         </div>
@@ -312,9 +320,13 @@ const DashboardHome = () => {
               <TrendingDown size={22} />
             </div>
             <div>
-              <div><strong>Gastos del Mes</strong></div>
-              <div style={{ fontSize: 22 }}>{loading ? "..." : formatearCRC(totalGastosMesCRC)}</div>
-              <div className="text-muted" style={{ fontSize: 12 }}>Incluye suscripciones activas</div>
+              <strong>Gastos del Mes</strong>
+              <div style={{ fontSize: 22 }}>
+                {loading ? "..." : formatearCRC(totalGastosMesCRC)}
+              </div>
+              <div className="text-muted" style={{ fontSize: 12 }}>
+                Incluye suscripciones activas
+              </div>
             </div>
           </div>
         </div>
@@ -325,8 +337,10 @@ const DashboardHome = () => {
               <CalendarClock size={22} />
             </div>
             <div>
-              <div><strong>Suscripciones Activas</strong></div>
-              <div style={{ fontSize: 22 }}>{loading ? "..." : suscripcionesActivas}</div>
+              <strong>Suscripciones Activas</strong>
+              <div style={{ fontSize: 22 }}>
+                {loading ? "..." : suscripcionesActivas}
+              </div>
               <div className="text-muted" style={{ fontSize: 12 }}>
                 Total: {loading ? "..." : formatearCRC(totalSuscripcionesMesCRC)}
               </div>
@@ -335,65 +349,87 @@ const DashboardHome = () => {
         </div>
       </div>
 
-      {/* Sección de gráficas */}
+      {/* Gráficas */}
       <div className="row g-4">
         <div className="col-md-6">
           <div className="card shadow-sm p-3">
-            <h5 className="mb-1">Gastos por Categoría</h5>
-            <div className="text-muted mb-3">Conversión aplicada a CRC según TipoCambio.</div>
-
-            {loading ? (
-              <div className="text-muted">Cargando...</div>
-            ) : dataGastosPorCategoria.length === 0 ? (
-              <div className="text-muted">No hay datos de gastos para este periodo.</div>
-            ) : (
-              <div style={{ width: "100%", height: 320 }}>
-                <ResponsiveContainer>
-                  <PieChart>
-                    <Pie
-                      data={dataGastosPorCategoria}
-                      dataKey="value"
-                      nameKey="name"
-                      outerRadius={110}
-                      label
-                    >
-                      {dataGastosPorCategoria.map((_, idx) => (
-                        <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            )}
+            <h5>Gastos por Categoría</h5>
+            <div style={{ width: "100%", height: 320 }}>
+              <ResponsiveContainer>
+                <PieChart>
+                  <Pie
+                    data={Object.entries(
+                      gastosMes.reduce((acc, g) => {
+                        const n =
+                          categoriaNombrePorId[g.id_categoria] ||
+                          "Sin categoría";
+                        acc[n] = (acc[n] || 0) + aCRC(g.monto, g.id_moneda);
+                        return acc;
+                      }, {})
+                    ).map(([name, value]) => ({
+                      name,
+                      value: Math.round(value),
+                    }))}
+                    dataKey="value"
+                    nameKey="name"
+                    outerRadius={110}
+                    label
+                  >
+                    {Object.entries(
+                      gastosMes.reduce((acc, g) => {
+                        const n =
+                          categoriaNombrePorId[g.id_categoria] ||
+                          "Sin categoría";
+                        acc[n] = (acc[n] || 0) + aCRC(g.monto, g.id_moneda);
+                        return acc;
+                      }, {})
+                    ).map((_, idx) => (
+                      <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
 
         <div className="col-md-6">
           <div className="card shadow-sm p-3">
-            <h5 className="mb-1">Comparación por Categoría</h5>
-            <div className="text-muted mb-3">Ingresos vs Gastos (CRC) en el periodo.</div>
-
-            {loading ? (
-              <div className="text-muted">Cargando...</div>
-            ) : dataComparacion.length === 0 ? (
-              <div className="text-muted">No hay suficientes datos para comparar en este periodo.</div>
-            ) : (
-              <div style={{ width: "100%", height: 320 }}>
-                <ResponsiveContainer>
-                  <BarChart data={dataComparacion}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="categoria" />
-                    <YAxis />
-                    <Tooltip />
-                    <Legend />
-                    <Bar dataKey="ingresos" fill="#198754" />
-                    <Bar dataKey="gastos" fill="#dc3545" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
+            <h5>Comparación por Categoría</h5>
+            <div style={{ width: "100%", height: 320 }}>
+              <ResponsiveContainer>
+                <BarChart
+                  data={Object.values(
+                    [...gastosMes, ...ingresosMes].reduce((acc, x) => {
+                      const n =
+                        categoriaNombrePorId[x.id_categoria] ||
+                        "Sin categoría";
+                      acc[n] = acc[n] || {
+                        categoria: n,
+                        gastos: 0,
+                        ingresos: 0,
+                      };
+                      if (x.monto && x.id_gasto) {
+                        acc[n].gastos += aCRC(x.monto, x.id_moneda);
+                      } else {
+                        acc[n].ingresos += aCRC(x.monto, x.id_moneda);
+                      }
+                      return acc;
+                    }, {})
+                  )}
+                >
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis dataKey="categoria" />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="ingresos" fill="#198754" />
+                  <Bar dataKey="gastos" fill="#dc3545" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
         </div>
       </div>

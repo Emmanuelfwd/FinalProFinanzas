@@ -6,9 +6,11 @@ import {
   Trash2,
   RotateCcw,
   Filter,
+  FileText,
 } from "lucide-react";
 import api from "../../services/api";
 import ConfirmDeleteModal from "./ConfirmDeleteModal";
+import { exportHistorialPDF } from "../../services/exportHistorialPDF";
 
 const HistoryView = () => {
   const [gastos, setGastos] = useState([]);
@@ -21,7 +23,7 @@ const HistoryView = () => {
   // 🔎 Filtros
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
-  const [estado, setEstado] = useState("todos");
+  const [estado, setEstado] = useState("todos"); // todos | activos | eliminados
 
   // 🧨 Modal eliminar
   const [showModal, setShowModal] = useState(false);
@@ -69,9 +71,7 @@ const HistoryView = () => {
     if (!deleteTarget) return;
 
     try {
-      await api.delete(
-        `${deleteTarget.endpoint}/${deleteTarget.id}/force/`
-      );
+      await api.delete(`${deleteTarget.endpoint}/${deleteTarget.id}/force/`);
       setShowModal(false);
       setDeleteTarget(null);
       cargarTodo();
@@ -116,16 +116,19 @@ const HistoryView = () => {
   const filasFiltradas = useMemo(() => {
     let data = [...filas];
 
+    // Tab por tipo
     if (tab !== "todos") {
       data = data.filter((f) => f.tipo === tab);
     }
 
+    // Estado
     if (estado === "activos") {
       data = data.filter((f) => !f.eliminado);
     } else if (estado === "eliminados") {
       data = data.filter((f) => f.eliminado);
     }
 
+    // Fechas (YYYY-MM-DD compare ok)
     if (desde) data = data.filter((f) => f.fecha >= desde);
     if (hasta) data = data.filter((f) => f.fecha <= hasta);
 
@@ -145,11 +148,41 @@ const HistoryView = () => {
     }
   };
 
+  const exportarPDF = () => {
+    const mapTipo = (t) => {
+      if (t === "gasto") return "Gasto";
+      if (t === "ingreso") return "Ingreso";
+      if (t === "suscripcion") return "Suscripción";
+      return t;
+    };
+
+    const movimientosPDF = filasFiltradas.map((f) => ({
+      tipo: mapTipo(f.tipo),
+      fecha: f.fecha,
+      descripcion: f.descripcion,
+      monto: f.monto,
+      eliminado: f.eliminado,
+    }));
+
+    exportHistorialPDF({
+      movimientos: movimientosPDF,
+      titulo: "Historial de movimientos (filtrado)",
+      nombreArchivo: "historial_movimientos.pdf",
+    });
+  };
+
   if (loading) return <p>Cargando historial...</p>;
 
   return (
     <div>
-      <h3 className="mb-3">Historial de movimientos</h3>
+      <div className="d-flex justify-content-between align-items-center mb-3">
+        <h3 className="mb-0">Historial de movimientos</h3>
+
+        <button className="btn btn-outline-dark" onClick={exportarPDF}>
+          <FileText size={16} className="me-1" />
+          Exportar PDF
+        </button>
+      </div>
 
       {/* FILTROS */}
       <div className="card mb-3">
@@ -291,6 +324,8 @@ const HistoryView = () => {
         show={showModal}
         onClose={() => setShowModal(false)}
         onConfirm={confirmarEliminar}
+        title="Eliminar definitivamente"
+        message="Esto eliminará el registro de forma permanente. ¿Deseas continuar?"
       />
     </div>
   );
