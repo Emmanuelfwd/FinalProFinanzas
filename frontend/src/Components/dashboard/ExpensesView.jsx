@@ -11,9 +11,9 @@ const ExpensesView = () => {
   const [showModal, setShowModal] = useState(false);
   const [gastoEditar, setGastoEditar] = useState(null);
 
-  /* ===============================
+  /*
      Cargar categorías y monedas
-  =============================== */
+*/
   const cargarCombos = async () => {
     try {
       const [catRes, monRes] = await Promise.all([
@@ -30,12 +30,10 @@ const ExpensesView = () => {
     }
   };
 
-  /* ===============================
-     Cargar gastos (✔️ CORRECTO)
-  =============================== */
+  /* Cargar gastos */
   const cargarGastos = async () => {
     try {
-      const data = await obtenerGastos(); // ⬅️ data REAL
+      const data = await obtenerGastos();
       setGastos(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error cargando gastos:", error);
@@ -48,9 +46,9 @@ const ExpensesView = () => {
     cargarGastos();
   }, []);
 
-  /* ===============================
+  /* 
      Maps id → nombre
-  =============================== */
+ */
   const categoriasMap = useMemo(() => {
     const map = {};
     categorias.forEach((c) => {
@@ -67,9 +65,9 @@ const ExpensesView = () => {
     return map;
   }, [monedas]);
 
-  /* ===============================
+  /* 
      Acciones
-  =============================== */
+*/
   const handleEliminar = async (id) => {
     await eliminarGasto(id);
     cargarGastos();
@@ -85,9 +83,9 @@ const ExpensesView = () => {
     setShowModal(true);
   };
 
-  /* ===============================
+  /* 
      Render
-  =============================== */
+*/
   return (
     <div className="p-3">
       <div className="d-flex justify-content-between align-items-center mb-3">

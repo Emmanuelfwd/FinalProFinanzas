@@ -5,10 +5,16 @@ class AuthUsuario(models.Model):
     id_usuario = models.AutoField(primary_key=True)
     nombre = models.CharField(max_length=100)
     correo = models.EmailField(unique=True)
+
+    # Guardamos hash . A partir de este cambio, intentamos hashear siempre.
     contrasenha_hash = models.CharField(max_length=255)
+
+    # rol admin
+    is_admin = models.BooleanField(default=False)
+
     fecha_registro = models.DateTimeField(auto_now_add=True)
 
-    # 🔹 Alias para que SimpleJWT pueda usar .id
+    # Alias para que SimpleJWT pueda usar .id
     @property
     def id(self):
         return self.id_usuario
@@ -64,7 +70,7 @@ class Gasto(models.Model):
     fecha = models.DateField()
     descripcion = models.TextField(blank=True, null=True)
 
-    # ✅ SOFT DELETE
+    # SOFT DELETE
     eliminado = models.BooleanField(default=False)
 
     def __str__(self):
@@ -92,7 +98,7 @@ class Ingreso(models.Model):
     fecha = models.DateField()
     descripcion = models.TextField(blank=True, null=True)
 
-    # ✅ SOFT DELETE
+    # SOFT DELETE
     eliminado = models.BooleanField(default=False)
 
     def __str__(self):
@@ -110,7 +116,7 @@ class Suscripcion(models.Model):
     monto_mensual = models.DecimalField(max_digits=12, decimal_places=2)
     fecha_inicio = models.DateField()
 
-    # ✅ moneda (igual patrón que Gasto / Ingreso)
+    # moneda (igual patrón que Gasto / Ingreso)
     id_moneda = models.ForeignKey(
         TipoCambio,
         on_delete=models.SET_NULL,
@@ -119,7 +125,7 @@ class Suscripcion(models.Model):
 
     estado = models.BooleanField(default=True)
 
-    # ✅ SOFT DELETE
+    # SOFT DELETE
     eliminado = models.BooleanField(default=False)
 
     def __str__(self):

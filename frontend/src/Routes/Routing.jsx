@@ -1,10 +1,14 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
+
 import LandingPage from "../Pages/LandingPage";
 import Login from "../Pages/Login";
 import Register from "../Pages/Register";
 import Dashboard from "../Pages/Dashboard";
-import ProtectedRoute from "../Components/ProtectedRoute";
+import AdminDashboard from "../Pages/AdminDashboard";
+
+import ProtectedRoute from "./ProtectedRoute";
+import AdminRoute from "./AdminRoute";
 
 const Routing = () => {
   return (
@@ -14,7 +18,7 @@ const Routing = () => {
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
 
-      {/* Protegidas */}
+      {/* Usuario */}
       <Route
         path="/dashboard/*"
         element={
@@ -24,7 +28,16 @@ const Routing = () => {
         }
       />
 
-      {/* Catch-all */}
+      {/* Admin */}
+      <Route
+        path="/admin/*"
+        element={
+          <AdminRoute>
+            <AdminDashboard />
+          </AdminRoute>
+        }
+      />
+
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

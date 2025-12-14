@@ -8,7 +8,7 @@ const AddGastoModal = ({ show, onClose, onSave, gastoEditar }) => {
   const [categorias, setCategorias] = useState([]);
   const [monedas, setMonedas] = useState([]);
 
-  // OJO: usamos los nombres reales del backend
+  // usamos los nombres reales del backend
   const [idCategoria, setIdCategoria] = useState("");
   const [idMoneda, setIdMoneda] = useState("");
 
@@ -27,7 +27,7 @@ const AddGastoModal = ({ show, onClose, onSave, gastoEditar }) => {
         const cats = Array.isArray(catRes.data) ? catRes.data : [];
         const mons = Array.isArray(monRes.data) ? monRes.data : [];
 
-        // (Opcional) filtrar categorías para gastos
+        //  filtrar categorías para gastos
         const catsGasto = cats.filter(
           (c) => c.tipo === "GASTO" || c.tipo === "AMBOS"
         );
@@ -88,7 +88,7 @@ const AddGastoModal = ({ show, onClose, onSave, gastoEditar }) => {
       return;
     }
 
-    // Payload con los campos EXACTOS del backend
+    // Payload con los campos del backend
     const payload = {
       id_categoria: Number(idCategoria),
       id_moneda: Number(idMoneda),

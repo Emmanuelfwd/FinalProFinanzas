@@ -54,13 +54,13 @@ export const exportHistorialPDF = ({
       fontSize: 9,
     },
     headStyles: {
-      fillColor: [33, 37, 41], // Bootstrap dark
+      fillColor: [33, 37, 41], 
       textColor: 255,
     },
   });
 
-  /* ============================
+  /*
      Guardar
-  ============================ */
+ */
   doc.save(nombreArchivo);
 };

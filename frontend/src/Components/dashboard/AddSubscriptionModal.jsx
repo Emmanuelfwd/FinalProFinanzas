@@ -16,9 +16,9 @@ const AddSubscriptionModal = ({ show, onClose, onSave, subEditar }) => {
 
   const [monedas, setMonedas] = useState([]);
 
-  /* ===============================
+  /* 
      Cargar monedas (TipoCambio)
-  =============================== */
+*/
   useEffect(() => {
     const cargarMonedas = async () => {
       try {
@@ -32,9 +32,9 @@ const AddSubscriptionModal = ({ show, onClose, onSave, subEditar }) => {
     cargarMonedas();
   }, []);
 
-  /* ===============================
+  /* 
      Precarga al editar
-  =============================== */
+*/
   useEffect(() => {
     if (subEditar) {
       setNombreServicio(subEditar.nombre_servicio ?? "");
@@ -51,9 +51,9 @@ const AddSubscriptionModal = ({ show, onClose, onSave, subEditar }) => {
     }
   }, [subEditar]);
 
-  /* ===============================
+  /* 
      Guardar
-  =============================== */
+  */
   const handleSubmit = async (e) => {
     e.preventDefault();
 

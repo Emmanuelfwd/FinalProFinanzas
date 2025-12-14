@@ -11,9 +11,9 @@ const IncomeView = () => {
   const [showModal, setShowModal] = useState(false);
   const [ingresoEditar, setIngresoEditar] = useState(null);
 
-  /* ===============================
+  /*
      Cargar categorías y monedas
-  =============================== */
+*/
   const cargarCombos = async () => {
     try {
       const [catRes, monRes] = await Promise.all([
@@ -30,12 +30,10 @@ const IncomeView = () => {
     }
   };
 
-  /* ===============================
-     Cargar ingresos (✔️ CORRECTO)
-  =============================== */
+  /*Cargar ingresos  */
   const cargarIngresos = async () => {
     try {
-      const data = await obtenerIngresos(); // 👈 YA ES data
+      const data = await obtenerIngresos(); 
       setIngresos(Array.isArray(data) ? data : []);
     } catch (error) {
       console.error("Error cargando ingresos:", error);
@@ -48,9 +46,7 @@ const IncomeView = () => {
     cargarIngresos();
   }, []);
 
-  /* ===============================
-     Maps id → nombre
-  =============================== */
+  /* Maps id → nombre*/
   const categoriasMap = useMemo(() => {
     const map = {};
     categorias.forEach((c) => {
@@ -67,9 +63,7 @@ const IncomeView = () => {
     return map;
   }, [monedas]);
 
-  /* ===============================
-     Acciones
-  =============================== */
+  /*Acciones*/
   const handleEliminar = async (id) => {
     await eliminarIngreso(id);
     cargarIngresos();
@@ -85,9 +79,7 @@ const IncomeView = () => {
     setShowModal(true);
   };
 
-  /* ===============================
-     Render
-  =============================== */
+  /* Render*/
   return (
     <div className="p-3">
       <div className="d-flex justify-content-between align-items-center mb-3">

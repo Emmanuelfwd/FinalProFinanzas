@@ -20,12 +20,12 @@ const HistoryView = () => {
   const [tab, setTab] = useState("todos");
   const [loading, setLoading] = useState(true);
 
-  // 🔎 Filtros
+  // Filtros
   const [desde, setDesde] = useState("");
   const [hasta, setHasta] = useState("");
-  const [estado, setEstado] = useState("todos"); // todos | activos | eliminados
+  const [estado, setEstado] = useState("todos"); 
 
-  // 🧨 Modal eliminar
+  // Modal eliminar
   const [showModal, setShowModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
 
@@ -128,7 +128,7 @@ const HistoryView = () => {
       data = data.filter((f) => f.eliminado);
     }
 
-    // Fechas (YYYY-MM-DD compare ok)
+    // Fechas (YYYY-MM-DD)
     if (desde) data = data.filter((f) => f.fecha >= desde);
     if (hasta) data = data.filter((f) => f.fecha <= hasta);
 
