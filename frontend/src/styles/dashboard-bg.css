@@ -1,0 +1,19 @@
+/* ---------- DASHBOARD BACKGROUND ---------- */
+.dashboard-bg {
+  min-height: 100vh;
+  background-image: url("/images/backgroundgeneraldashboard.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* Overlay MUY sutil (antes estaba demasiado fuerte) */
+.dashboard-overlay {
+  min-height: 100vh;
+  background: rgba(255, 255, 255, 0.75);
+}
+
+/* Área principal */
+.dashboard-main {
+  padding: 1.5rem;
+}

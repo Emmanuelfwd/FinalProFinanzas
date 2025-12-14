@@ -44,14 +44,7 @@ const SidebarDashboard = () => {
           Suscripciones
         </NavLink>
 
-        <NavLink
-          to={`${base}/graficas`}
-          className={({ isActive }) =>
-            "nav-link" + (isActive ? " fw-bold text-primary" : "")
-          }
-        >
-          Gráficas
-        </NavLink>
+       
 
         <NavLink
           to={`${base}/historial`}

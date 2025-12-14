@@ -1,0 +1,38 @@
+/* ---------- LOGIN / REGISTER BACKGROUND ---------- */
+.auth-bg {
+  min-height: 100vh;
+  background-image: url("/images/loginYregistro.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+/* ---------- LOGIN CARD ---------- */
+.login-card {
+  background: #ffffff;
+  padding: 2.5rem;
+  border-radius: 10px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+}
+
+/* ---------- DASHBOARD BACKGROUND ---------- */
+.dashboard-bg {
+  min-height: 100vh;
+  background-image: url("/images/backgroundgeneraldashboard.png");
+  background-size: cover;
+  background-position: center;
+  background-attachment: fixed;
+}
+
+.dashboard-overlay {
+  min-height: 100vh;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+/* ---------- LOGO ---------- */
+.app-logo {
+  height: 36px;
+  object-fit: contain;
+}

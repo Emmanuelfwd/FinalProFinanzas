@@ -8,23 +8,27 @@ import CategoriesAdmin from "../Components/admin/CategoriesAdmin";
 import TipoCambioAdmin from "../Components/admin/TipoCambioAdmin";
 import CreateAdmin from "../Components/admin/CreateAdmin";
 
+import "../styles/dashboard-bg.css";
+
 const AdminDashboard = () => {
   return (
-    <div className="d-flex flex-column min-vh-100">
-      <NavbarDashboard />
+    <div className="dashboard-bg">
+      <div className="dashboard-overlay d-flex flex-column">
+        <NavbarDashboard />
 
-      <div className="d-flex flex-grow-1">
-        <AdminSidebar />
+        <div className="d-flex flex-grow-1">
+          <AdminSidebar />
 
-        <main className="flex-grow-1 p-4 bg-light">
-          <Routes>
-            <Route index element={<AdminHome />} />
-            <Route path="usuarios" element={<UsersAdmin />} />
-            <Route path="categorias" element={<CategoriesAdmin />} />
-            <Route path="monedas" element={<TipoCambioAdmin />} />
-            <Route path="crear-admin" element={<CreateAdmin />} />
-          </Routes>
-        </main>
+          <main className="flex-grow-1 dashboard-main">
+            <Routes>
+              <Route index element={<AdminHome />} />
+              <Route path="usuarios" element={<UsersAdmin />} />
+              <Route path="categorias" element={<CategoriesAdmin />} />
+              <Route path="monedas" element={<TipoCambioAdmin />} />
+              <Route path="crear-admin" element={<CreateAdmin />} />
+            </Routes>
+          </main>
+        </div>
       </div>
     </div>
   );

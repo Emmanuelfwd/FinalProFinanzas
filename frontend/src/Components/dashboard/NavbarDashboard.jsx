@@ -1,9 +1,8 @@
-import React from "react";
 import { Link, useNavigate } from "react-router-dom";
+import "../../styles/visual.css";
 
 const NavbarDashboard = () => {
   const navigate = useNavigate();
-
   const user = JSON.parse(localStorage.getItem("currentUser") || "null");
 
   const handleLogout = () => {
@@ -12,32 +11,25 @@ const NavbarDashboard = () => {
   };
 
   return (
-    <nav className="navbar navbar-expand-lg navbar-light bg-white border-bottom px-3">
+    <nav className="navbar navbar-light bg-white border-bottom px-3">
       <div className="container-fluid">
-        {/* LOGO / TITULO */}
-        <Link className="navbar-brand fw-bold" to="/dashboard">
-          FinanzasApp
+        <Link to="/dashboard" className="navbar-brand d-flex align-items-center">
+          {/* LOGO */}
+          <img
+            src="/images/logo.jpg"
+            alt="Logo"
+            className="app-logo me-2"
+          />
+          <strong>FinanzasApp</strong>
         </Link>
 
         <div className="d-flex align-items-center gap-2">
-          {/* BOTÓN ADMIN (solo admins) */}
-          {user?.is_admin === true && (
-            <Link
-              to="/admin"
-              className="btn btn-sm btn-outline-dark"
-            >
+          {user?.is_admin && (
+            <Link to="/admin" className="btn btn-sm btn-outline-dark">
               Admin
             </Link>
           )}
 
-          {/* USUARIO */}
-          {user && (
-            <span className="text-muted small d-none d-md-inline">
-              {user.nombre}
-            </span>
-          )}
-
-          {/* LOGOUT */}
           <button
             className="btn btn-sm btn-outline-danger"
             onClick={handleLogout}

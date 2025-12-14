@@ -1,217 +1,25 @@
-/* ===== Reset muy suave (solo para la landing) ===== */
-.landing-wrapper,
-.landing-wrapper * {
-  box-sizing: border-box;
-}
-
-/* ===== Layout general ===== */
-
-.landing-wrapper {
+/* ---------- LANDING BACKGROUND ---------- */
+.landing-bg {
   min-height: 100vh;
-  width: 100%;
-  background: radial-gradient(circle at top, #f4f7ff 0, #f7f9fc 40%, #f8fafc 100%);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  color: #0f172a;
-  padding: 24px 16px 40px;
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background-image: url("/images/landingPage.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
-/* Contenedor central para alinear todo como en Figma */
-.landing-container {
-  width: 100%;
-  max-width: 1120px;
-  margin: 0 auto;
+/* Contenido encima del background */
+.landing-content {
+  background: rgba(255, 255, 255, 0.92);
 }
 
-/* ===== NAVBAR ===== */
-
-.landing-nav {
-  width: 100%;
-  max-width: 1120px;
-  margin: 0 auto;
-  padding: 4px 0 0;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+/* Navbar landing */
+.landing-navbar {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(6px);
 }
 
+/* Logo + texto */
 .landing-logo {
-  font-size: 1.05rem;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: #0f172a;
-}
-
-.landing-logo span {
-  display: inline-block;
-  padding: 4px 7px;
-  border-radius: 8px;
-  border: 1px solid #2563eb;
-  font-size: 0.8rem;
-  color: #2563eb;
-}
-
-/* solo tienes el botón de login, así que lo dejamos simple */
-.login-btn {
-  padding: 8px 18px;
-  border-radius: 999px;
-  border: 1px solid #111827;
-  font-size: 0.85rem;
-  text-decoration: none;
-  color: #111827;
-  background: #ffffff;
-  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.login-btn:hover {
-  background: #111827;
-  color: #ffffff;
-  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.18);
-}
-
-/* ===== HERO ===== */
-
-.hero {
-  width: 100%;
-  max-width: 720px;
-  margin: 80px auto 56px;
-  text-align: center;
-}
-
-.hero h1 {
-  font-size: 2.6rem;
-  line-height: 1.1;
-  letter-spacing: 0.02em;
-  margin-bottom: 18px;
-}
-
-.hero .subtitle {
-  font-size: 0.98rem;
-  line-height: 1.6;
-  color: #6b7280;
-  max-width: 620px;
-  margin: 0 auto 26px;
-}
-
-.primary-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 10px 22px;
-  border-radius: 999px;
-  border: none;
-  text-decoration: none;
-  background: #2563eb;
-  color: #ffffff;
-  font-weight: 500;
-  font-size: 0.95rem;
-  box-shadow: 0 12px 25px rgba(37, 99, 235, 0.4);
-  transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
-}
-
-.primary-btn:hover {
-  background: #1d4ed8;
-  transform: translateY(-1px);
-  box-shadow: 0 16px 30px rgba(37, 99, 235, 0.45);
-}
-
-/* ===== TÍTULO DE SECCIÓN ===== */
-
-.section-title {
-  width: 100%;
-  max-width: 1120px;
-  margin: 0 auto 24px;
-  text-align: center;
-  font-size: 1.1rem;
-  font-weight: 500;
-  color: #4b5563;
-}
-
-/* ===== FEATURES ===== */
-
-.features {
-  width: 100%;
-  max-width: 1120px;
-  margin: 0 auto 64px;
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 24px;
-}
-
-.feature-card {
-  background: #ffffff;
-  border-radius: 18px;
-  padding: 22px 24px;
-  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.08);
-  border: 1px solid rgba(148, 163, 184, 0.2);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.feature-card h3 {
-  font-size: 0.98rem;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-
-.feature-card p {
-  font-size: 0.9rem;
-  line-height: 1.6;
-  color: #6b7280;
-}
-
-/* ===== FOOTER ===== */
-
-.landing-footer {
-  width: 100%;
-  max-width: 1120px;
-  margin: 0 auto;
-  border-top: 1px solid rgba(148, 163, 184, 0.35);
-  padding-top: 18px;
-  text-align: left;
-  font-size: 0.82rem;
-  color: #9ca3af;
-}
-
-/* ===== RESPONSIVE ===== */
-
-@media (max-width: 1024px) {
-  .hero {
-    margin-top: 64px;
-  }
-
-  .features {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (max-width: 768px) {
-  .landing-wrapper {
-    padding: 16px 14px 32px;
-  }
-
-  .landing-nav {
-    padding-top: 0;
-  }
-
-  .hero {
-    margin-top: 44px;
-  }
-
-  .hero h1 {
-    font-size: 2.1rem;
-  }
-
-  .features {
-    grid-template-columns: 1fr;
-  }
-
-  .landing-footer {
-    text-align: center;
-  }
+  height: 38px;
+  object-fit: contain;
 }
