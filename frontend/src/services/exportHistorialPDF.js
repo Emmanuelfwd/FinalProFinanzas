@@ -38,13 +38,19 @@ export const exportHistorialPDF = ({
     { header: "Estado", dataKey: "estado" },
   ];
 
-  const filas = movimientos.map((m) => ({
-    tipo: m.tipo,
-    fecha: m.fecha || "-",
-    descripcion: m.descripcion || "-",
-    monto: m.monto || "₡0",
-    estado: m.eliminado ? "Eliminado" : "Activo",
-  }));
+const filas = movimientos.map((m) => ({
+  tipo: m.tipo,
+  fecha: m.fecha || "-",
+  descripcion: m.descripcion || "-",
+  monto: (
+  typeof m.monto === "number"
+    ? m.monto
+    : parseFloat(String(m.monto).replace(/[^0-9.]/g, ""))
+).toFixed(2)
+, 
+  estado: m.eliminado ? "Eliminado" : "Activo",
+}));
+
 
   autoTable(doc, {
     startY: 30,
