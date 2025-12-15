@@ -33,8 +33,6 @@ from .authentication import JWTAuthentication
 
 
 # LOGIN
-
-
 class LoginView(APIView):
     permission_classes = [AllowAny]
 
@@ -79,10 +77,7 @@ class LoginView(APIView):
         })
 
 
-
 # USUARIO ACTUAL
-
-
 class UsuarioActualAPIView(APIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticatedAuthUsuario]
@@ -92,10 +87,7 @@ class UsuarioActualAPIView(APIView):
         return Response(serializer.data)
 
 
-
-# USUARIOS (ADMIN)
-
-
+# USUARIOS (ADMIN + REGISTRO)
 class AuthUsuarioView(ListCreateAPIView):
     queryset = AuthUsuario.objects.all()
     authentication_classes = [JWTAuthentication]
@@ -106,8 +98,10 @@ class AuthUsuarioView(ListCreateAPIView):
         return AuthUsuarioSerializer
 
     def get_permissions(self):
+        # POST /api/usuarios/ => registro público
         if self.request.method == "POST":
             return [AllowAny()]
+        # GET /api/admin/usuarios/ => solo admin
         return [IsAdminAuthUsuario()]
 
 
@@ -155,8 +149,7 @@ class AdminCrearAdminAPIView(APIView):
         return Response(AuthUsuarioAdminListSerializer(admin).data, status=201)
 
 
-# CATEGORÍAS 
-
+# CATEGORÍAS
 class CategoriaView(ListCreateAPIView):
     authentication_classes = [JWTAuthentication]
     queryset = Categoria.objects.all()
@@ -179,9 +172,7 @@ class CategoriaDetailView(RetrieveUpdateDestroyAPIView):
         return [IsAdminAuthUsuario()]
 
 
-# TIPO DE CAMBIO 
-
-
+# TIPO DE CAMBIO
 class TipoCambioView(ListCreateAPIView):
     authentication_classes = [JWTAuthentication]
     queryset = TipoCambio.objects.all()
@@ -204,24 +195,80 @@ class TipoCambioDetailView(RetrieveUpdateDestroyAPIView):
         return [IsAdminAuthUsuario()]
 
 
+# Helpers
+def _want_incluir_eliminados(request) -> bool:
+    return str(request.query_params.get("incluir_eliminados", "")).strip() in ("1", "true", "True", "yes", "YES")
 
-# GASTOS / INGRESOS / SUSCRIPCIONES
 
-
-
+# GASTOS
 class GastoView(ListCreateAPIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticatedAuthUsuario]
     serializer_class = GastoSerializer
 
     def get_queryset(self):
-        return Gasto.objects.filter(id_usuario=self.request.user.id_usuario, eliminado=False)
+        qs = Gasto.objects.filter(id_usuario=self.request.user.id_usuario)
+        if not _want_incluir_eliminados(self.request):
+            qs = qs.filter(eliminado=False)
+        return qs
 
     def perform_create(self, serializer):
         serializer.save(id_usuario=self.request.user)
 
 
+class GastoDetailView(RetrieveUpdateDestroyAPIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticatedAuthUsuario]
+    serializer_class = GastoSerializer
+
+    def get_queryset(self):
+        # Para editar/eliminar desde pantallas activas: no permitir operar sobre eliminados
+        return Gasto.objects.filter(id_usuario=self.request.user.id_usuario, eliminado=False)
+
+    def perform_destroy(self, instance):
+        # Soft delete
+        instance.eliminado = True
+        instance.save(update_fields=["eliminado"])
+
+
+class GastoRestoreView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticatedAuthUsuario]
+
+    def patch(self, request, pk):
+        gasto = get_object_or_404(Gasto, pk=pk, id_usuario=request.user.id_usuario)
+        gasto.eliminado = False
+        gasto.save(update_fields=["eliminado"])
+        return Response({"detail": "Gasto restaurado"}, status=status.HTTP_200_OK)
+
+
+class GastoForceDeleteView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticatedAuthUsuario]
+
+    def delete(self, request, pk):
+        gasto = get_object_or_404(Gasto, pk=pk, id_usuario=request.user.id_usuario)
+        gasto.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# INGRESOS
 class IngresoView(ListCreateAPIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticatedAuthUsuario]
+    serializer_class = IngresoSerializer
+
+    def get_queryset(self):
+        qs = Ingreso.objects.filter(id_usuario=self.request.user.id_usuario)
+        if not _want_incluir_eliminados(self.request):
+            qs = qs.filter(eliminado=False)
+        return qs
+
+    def perform_create(self, serializer):
+        serializer.save(id_usuario=self.request.user)
+
+
+class IngresoDetailView(RetrieveUpdateDestroyAPIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticatedAuthUsuario]
     serializer_class = IngresoSerializer
@@ -229,11 +276,49 @@ class IngresoView(ListCreateAPIView):
     def get_queryset(self):
         return Ingreso.objects.filter(id_usuario=self.request.user.id_usuario, eliminado=False)
 
+    def perform_destroy(self, instance):
+        instance.eliminado = True
+        instance.save(update_fields=["eliminado"])
+
+
+class IngresoRestoreView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticatedAuthUsuario]
+
+    def patch(self, request, pk):
+        ingreso = get_object_or_404(Ingreso, pk=pk, id_usuario=request.user.id_usuario)
+        ingreso.eliminado = False
+        ingreso.save(update_fields=["eliminado"])
+        return Response({"detail": "Ingreso restaurado"}, status=status.HTTP_200_OK)
+
+
+class IngresoForceDeleteView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticatedAuthUsuario]
+
+    def delete(self, request, pk):
+        ingreso = get_object_or_404(Ingreso, pk=pk, id_usuario=request.user.id_usuario)
+        ingreso.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+# SUSCRIPCIONES
+class SuscripcionView(ListCreateAPIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticatedAuthUsuario]
+    serializer_class = SuscripcionSerializer
+
+    def get_queryset(self):
+        qs = Suscripcion.objects.filter(id_usuario=self.request.user.id_usuario)
+        if not _want_incluir_eliminados(self.request):
+            qs = qs.filter(eliminado=False)
+        return qs
+
     def perform_create(self, serializer):
         serializer.save(id_usuario=self.request.user)
 
 
-class SuscripcionView(ListCreateAPIView):
+class SuscripcionDetailView(RetrieveUpdateDestroyAPIView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticatedAuthUsuario]
     serializer_class = SuscripcionSerializer
@@ -241,5 +326,27 @@ class SuscripcionView(ListCreateAPIView):
     def get_queryset(self):
         return Suscripcion.objects.filter(id_usuario=self.request.user.id_usuario, eliminado=False)
 
-    def perform_create(self, serializer):
-        serializer.save(id_usuario=self.request.user)
+    def perform_destroy(self, instance):
+        instance.eliminado = True
+        instance.save(update_fields=["eliminado"])
+
+
+class SuscripcionRestoreView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticatedAuthUsuario]
+
+    def patch(self, request, pk):
+        sus = get_object_or_404(Suscripcion, pk=pk, id_usuario=request.user.id_usuario)
+        sus.eliminado = False
+        sus.save(update_fields=["eliminado"])
+        return Response({"detail": "Suscripción restaurada"}, status=status.HTTP_200_OK)
+
+
+class SuscripcionForceDeleteView(APIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticatedAuthUsuario]
+
+    def delete(self, request, pk):
+        sus = get_object_or_404(Suscripcion, pk=pk, id_usuario=request.user.id_usuario)
+        sus.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)

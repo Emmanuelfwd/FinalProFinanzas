@@ -1,7 +1,7 @@
 /* ---------- DASHBOARD BACKGROUND ---------- */
 .dashboard-bg {
   min-height: 100vh;
-  background-image: url("/images/backgroundgeneraldashboard.png");
+  background-image: url("/images/backgroundgeneralydashboard.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;

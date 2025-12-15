@@ -25,43 +25,64 @@ def _parece_hash_django(valor: str) -> bool:
 class AuthUsuarioSerializer(serializers.ModelSerializer):
     """
     - NO expone contrasenha_hash (write_only).
-    - Acepta contrasenha_hash en creación/actualización para mantener compatibilidad
-      con tu Register.jsx (que envía contrasenha_hash: password). :contentReference[oaicite:5]{index=5}
+    - Acepta:
+        * password (como envía tu Register.jsx actual)
+        * o contrasenha_hash (compatibilidad)
     - Hashea automáticamente cuando llega en texto plano.
     """
+    password = serializers.CharField(write_only=True, required=False, min_length=4, max_length=128)
+
     class Meta:
         model = AuthUsuario
         fields = [
             "id_usuario",
             "nombre",
             "correo",
+            "password",
             "contrasenha_hash",
             "is_admin",
             "fecha_registro",
         ]
         extra_kwargs = {
-            "contrasenha_hash": {"write_only": True},
+            "contrasenha_hash": {"write_only": True, "required": False},
             "fecha_registro": {"read_only": True},
             "is_admin": {"required": False},
         }
 
     def create(self, validated_data):
-        raw = validated_data.get("contrasenha_hash")
+        # Aceptar password (frontend) o contrasenha_hash (compatibilidad)
+        raw_password = validated_data.pop("password", None)
+        raw_hash_field = validated_data.get("contrasenha_hash")
+
+        raw = raw_password or raw_hash_field
+
         if raw:
             if not _parece_hash_django(raw):
                 validated_data["contrasenha_hash"] = make_password(raw)
-        # por seguridad: si alguien intenta crear admin por /usuarios/, lo forzamos a user normal
-        validated_data["is_admin"] = bool(validated_data.get("is_admin", False)) and False
+            else:
+                validated_data["contrasenha_hash"] = raw
+
+        # seguridad: no permitir crear admin desde /usuarios/
+        validated_data["is_admin"] = False
+
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
-        raw = validated_data.get("contrasenha_hash")
+        raw_password = validated_data.pop("password", None)
+        raw_hash_field = validated_data.get("contrasenha_hash")
+
+        raw = raw_password or raw_hash_field
+
         if raw:
             if not _parece_hash_django(raw):
                 validated_data["contrasenha_hash"] = make_password(raw)
+            else:
+                validated_data["contrasenha_hash"] = raw
+
         # No permitimos elevar a admin desde endpoints generales
         if "is_admin" in validated_data:
             validated_data.pop("is_admin", None)
+
         return super().update(instance, validated_data)
 
 
@@ -115,7 +136,7 @@ class GastoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Gasto
         fields = "__all__"
-        read_only_fields = ["id_usuario"]  
+        read_only_fields = ["id_usuario"]
 
 
 # INGRESOS
@@ -123,7 +144,7 @@ class IngresoSerializer(serializers.ModelSerializer):
     class Meta:
         model = Ingreso
         fields = "__all__"
-        read_only_fields = ["id_usuario"] 
+        read_only_fields = ["id_usuario"]
 
 
 # SUSCRIPCIONES
@@ -136,4 +157,4 @@ class SuscripcionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Suscripcion
         fields = "__all__"
-        read_only_fields = ["id_usuario"]  
+        read_only_fields = ["id_usuario"]
