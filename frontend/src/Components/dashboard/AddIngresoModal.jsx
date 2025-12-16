@@ -23,7 +23,7 @@ const AddIngresoModal = ({ show, onClose, onSave, ingresoEditar }) => {
           api.get("tipocambio/"),
         ]);
 
-        // Solo categorías de INGRESO
+ 
         const cats = Array.isArray(catRes.data)
           ? catRes.data.filter(
               (c) => c.tipo === "INGRESO" || c.tipo === "AMBOS"

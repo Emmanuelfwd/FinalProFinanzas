@@ -15,9 +15,9 @@ const AdminHome = () => {
 
     try {
       const [users, catsRes, monedasRes] = await Promise.all([
-        obtenerUsuarios(), // /api/admin/usuarios/
-        api.get("categorias/"), // /api/categorias/
-        api.get("tipocambio/"), // /api/tipocambio/
+        obtenerUsuarios(), 
+        api.get("categorias/"), 
+        api.get("tipocambio/"),
       ]);
 
       setUsuarios(Array.isArray(users) ? users : []);
